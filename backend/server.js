@@ -82,6 +82,20 @@ function requireCert(res) {
 function cnpj8(cnpj) { return cnpj.replace(/\D/g, '').substring(0, 8); }
 function cnpj14(cnpj) { return cnpj.replace(/\D/g, '').padEnd(14, '0').substring(0, 14); }
 
+// ── GET /api/debug (diagnóstico Railway) ─────────────────────────────────────
+app.get('/api/debug', (req, res) => {
+  res.json({
+    node_version: process.version,
+    cwd: process.cwd(),
+    dirname: __dirname,
+    env_keys: Object.keys(process.env).filter(k => !k.includes('SECRET')),
+    PFX_BASE64_length: process.env.PFX_BASE64 ? process.env.PFX_BASE64.length : 0,
+    PFX_PASSWORD: process.env.PFX_PASSWORD ? 'SET' : 'NOT SET',
+    TRANSMISSOR_CPF: process.env.TRANSMISSOR_CPF || 'NOT SET',
+    ESOCIAL_AMBIENTE: process.env.ESOCIAL_AMBIENTE || 'NOT SET',
+  });
+});
+
 // ── GET /api/status ──────────────────────────────────────────────────────────
 app.get('/api/status', (req, res) => {
   res.json({
