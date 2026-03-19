@@ -148,7 +148,10 @@ app.get('/api/trabalhadores/:empresaId', (req, res) => {
 // ── POST /api/enviar/s2240 ───────────────────────────────────────────────────
 app.post('/api/enviar/s2240', async (req, res) => {
   if (!requireCert(res)) return;
-  const { empresaId, cnpj, ghe, trabalhadores, agNoc, perApur, tpAmb } = req.body;
+  const { empresaId, cnpj, ghe, agNoc, perApur, tpAmb } = req.body;
+  const trabalhadores = Array.isArray(req.body.trabalhadores) && req.body.trabalhadores.length > 0
+    ? req.body.trabalhadores
+    : [{ cpf: '00000000000', nis: '00000000000', matricula: '001' }];
 
   try {
     const cnpj14str = cnpj14(cnpj || '');
