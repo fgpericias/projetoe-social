@@ -84,15 +84,17 @@ function cnpj14(cnpj) { return cnpj.replace(/\D/g, '').padEnd(14, '0').substring
 
 // ── GET /api/debug (diagnóstico Railway) ─────────────────────────────────────
 app.get('/api/debug', (req, res) => {
+  const allEnv = {};
+  for (const [k, v] of Object.entries(process.env)) {
+    if (k === 'PFX_BASE64') allEnv[k] = v ? `SIM_${v.length}_chars` : 'VAZIO';
+    else if (['PFX_PASSWORD','TRANSMISSOR_CPF','TRANSMISSOR_NOME','ESOCIAL_AMBIENTE'].includes(k)) allEnv[k] = v || 'VAZIO';
+  }
   res.json({
+    versao_codigo: 'v5_debug',
     node_version: process.version,
     cwd: process.cwd(),
-    dirname: __dirname,
-    env_keys: Object.keys(process.env).filter(k => !k.includes('SECRET')),
-    PFX_BASE64_length: process.env.PFX_BASE64 ? process.env.PFX_BASE64.length : 0,
-    PFX_PASSWORD: process.env.PFX_PASSWORD ? 'SET' : 'NOT SET',
-    TRANSMISSOR_CPF: process.env.TRANSMISSOR_CPF || 'NOT SET',
-    ESOCIAL_AMBIENTE: process.env.ESOCIAL_AMBIENTE || 'NOT SET',
+    variaveis_customizadas: allEnv,
+    total_env_vars: Object.keys(process.env).length,
   });
 });
 
