@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(npm --version)",
+      "Bash(node -e \":*)",
+      "Bash(node --check _temp_check.js)",
+      "Bash(rm -f _temp_check.js)",
+      "Bash(cmd /c \"cd \"\"C:\\\\Users\\\\Dell\\\\OneDrive\\\\Desktop\\\\intergrador e pgr\\\\backend\"\" && node -e \"\"const fs=require\\(''fs''\\);const html=fs.readFileSync\\(''../frontend/index.html'',''utf8''\\);const s=html.indexOf\\(''<script>''\\);const e=html.lastIndexOf\\(''</script>''\\);const js=html.slice\\(s+8,e\\);fs.writeFileSync\\(''../_temp_check.js'',js\\);console.log\\(''done'',js.length\\);\"\"\")",
+      "Bash(cmd /c \"node --version\")",
+      "Bash(powershell -Command \"node --version\")",
+      "Bash(powershell -Command \"& ''C:\\\\Program Files\\\\nodejs\\\\node.exe'' --version\")",
+      "Bash(powershell -Command \":*)",
+      "Bash(powershell -Command \"& ''C:\\\\Program Files\\\\nodejs\\\\node.exe'' --check ''C:\\\\Users\\\\Dell\\\\OneDrive\\\\Desktop\\\\_temp_check.js'' 2>&1\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s http://localhost:3001/api/status)",
+      "Bash(python3:*)",
+      "Bash(node -c \"C:\\\\Users\\\\Dell\\\\OneDrive\\\\Desktop\\\\intergrador e pgr\\\\frontend\\\\index.html\")"
+    ]
+  }
+}

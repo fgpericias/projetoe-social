@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Converter Certificado para Base64</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #f0f0ff;
+        }
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .upload-text {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .upload-hint {
+            color: #999;
+            font-size: 12px;
+        }
+        #fileInput {
+            display: none;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 14px;
+        }
+        .btn-select {
+            background: #667eea;
+            color: white;
+        }
+        .btn-select:hover {
+            background: #5568d3;
+        }
+        .btn-copy {
+            background: #48bb78;
+            color: white;
+        }
+        .btn-copy:hover {
+            background: #38a169;
+        }
+        .btn-copy:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .status.show {
+            display: block;
+        }
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+        .status.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
+        }
+        .output-section {
+            display: none;
+        }
+        .output-section.show {
+            display: block;
+        }
+        .output-label {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .output-box {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+            word-break: break-all;
+            color: #333;
+            line-height: 1.4;
+        }
+        .info-box {
+            background: #edf2f7;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+        .info-box strong {
+            color: #667eea;
+        }
+        .filename {
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Converter Certificado</h1>
+        <p class="subtitle">Converta seu .pfx para Base64 para usar no Railway</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Clique ou arraste seu certificado .pfx aqui</div>
+            <div class="upload-hint">Arquivo: .pfx | Tamanho máximo: 10MB</div>
+            <input type="file" id="fileInput" accept=".pfx" />
+        </div>
+
+        <div class="button-group">
+            <button class="btn-select" onclick="document.getElementById('fileInput').click()">
+                Selecionar Arquivo
+            </button>
+            <button class="btn-copy" id="copyBtn" disabled onclick="copyToClipboard()">
+                Copiar Base64
+            </button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="output-section" id="outputSection">
+            <div class="output-label">Base64 Gerado:</div>
+            <div class="output-box" id="outputBox"></div>
+            <div class="filename" id="filename"></div>
+        </div>
+
+        <div class="info-box">
+            <strong>📋 Como usar no Railway:</strong><br>
+            1. Copie o Base64 (botão acima)<br>
+            2. No Railway → Variables<br>
+            3. Crie uma variável: <strong>PFX_BASE64</strong><br>
+            4. Cole o conteúdo copiado<br>
+            5. Deploy pronto!
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        const outputSection = document.getElementById('outputSection');
+        const outputBox = document.getElementById('outputBox');
+        const copyBtn = document.getElementById('copyBtn');
+        const filenameDiv = document.getElementById('filename');
+
+        let base64Data = '';
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        });
+
+        // Click to select
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]);
+            }
+        });
+
+        function processFile(file) {
+            // Validar
+            if (!file.name.endsWith('.pfx')) {
+                showStatus('❌ Apenas arquivos .pfx são aceitos!', 'error');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showStatus('❌ Arquivo muito grande (máximo 10MB)', 'error');
+                return;
+            }
+
+            showStatus('⏳ Processando certificado...', 'info');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const arrayBuffer = e.target.result;
+                    base64Data = btoa(String.fromCharCode.apply(null, new Uint8Array(arrayBuffer)));
+
+                    outputBox.textContent = base64Data;
+                    filenameDiv.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+                    outputSection.classList.add('show');
+                    copyBtn.disabled = false;
+
+                    showStatus('✅ Certificado convertido com sucesso!', 'success');
+                } catch (err) {
+                    showStatus(`❌ Erro ao processar: ${err.message}`, 'error');
+                }
+            };
+
+            reader.onerror = () => {
+                showStatus('❌ Erro ao ler o arquivo', 'error');
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(base64Data).then(() => {
+                showStatus('✅ Copiado para a área de transferência!', 'success');
+
+                // Reset mensagem após 2 segundos
+                setTimeout(() => {
+                    status.classList.remove('show');
+                }, 2000);
+            }).catch(() => {
+                showStatus('❌ Erro ao copiar', 'error');
+            });
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status show ${type}`;
+        }
+    </script>
+</body>
+</html>

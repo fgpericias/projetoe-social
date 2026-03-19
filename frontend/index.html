@@ -1,0 +1,2332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elaborador SST – PGR · LTCAT · PCMSO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  --red:#C0392B;--dark:#1a1a2e;--mid:#16213e;--card:#0f3460;
+  --accent:#e94560;--text:#eee;--muted:#aaa;--border:#2a4080;
+  --green:#27ae60;--yellow:#f39c12;--orange:#e67e22;--blue:#2980b9;
+  --white:#fff;--light-bg:#f4f6fa;--body-text:#222;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--dark);color:var(--text);min-height:100vh}
+
+/* ── HEADER ── */
+header{background:linear-gradient(135deg,var(--red),#8e1a12);padding:16px 32px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+header h1{font-size:1.4rem;font-weight:700;letter-spacing:.5px}
+header span{background:rgba(255,255,255,.15);padding:3px 10px;border-radius:12px;font-size:.75rem}
+.badge-pgr{background:#1a6a3a}
+.badge-ltcat{background:#1a4a7a}
+.badge-pcmso{background:#5a1a7a}
+.badge-esocial{background:#0a5a6a}
+
+/* ── eSocial ── */
+.esocial-event{background:#0a1f40;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.esocial-event h3{color:var(--accent);margin-bottom:6px}
+.xml-preview{background:#0d1117;color:#7ec8e3;padding:16px;border-radius:8px;font-size:.72rem;overflow-x:auto;max-height:320px;white-space:pre;font-family:monospace}
+.tab24-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:700;background:#0a3a5a;color:#85c1e9}
+.worker-row{background:#1a2540;padding:10px;border-radius:8px;margin-bottom:6px;position:relative}
+
+/* ── LAYOUT ── */
+.wrapper{max-width:1100px;margin:0 auto;padding:24px 16px}
+
+/* ── STEPPER ── */
+.stepper{display:flex;gap:0;margin-bottom:32px;border-radius:12px;overflow:hidden;background:var(--mid)}
+.step{flex:1;padding:14px 8px;text-align:center;font-size:.8rem;cursor:pointer;transition:.2s;border-bottom:3px solid transparent;color:var(--muted)}
+.step.active{border-bottom-color:var(--accent);color:var(--white);background:rgba(233,69,96,.1);font-weight:600}
+.step.done{border-bottom-color:var(--green);color:var(--green)}
+.step-num{display:block;font-size:1.2rem;font-weight:700;margin-bottom:2px}
+
+/* ── CARDS ── */
+.card{background:var(--mid);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px}
+.card h2{font-size:1.1rem;color:var(--accent);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.card h3{font-size:.95rem;color:var(--text);margin:16px 0 10px}
+
+/* ── FORM ELEMENTS ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+label{font-size:.8rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+input,select,textarea{background:#1a2540;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;font-size:.9rem;width:100%;transition:.2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);background:#1f2d50}
+textarea{resize:vertical;min-height:70px}
+select option{background:#1a2540}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 22px;border:none;border-radius:8px;font-weight:600;font-size:.9rem;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--red);color:#fff}
+.btn-primary:hover{background:#a93226}
+.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:#1a3a6a}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{background:#1e8449}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:#21618c}
+.btn-sm{padding:6px 14px;font-size:.8rem}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}
+
+/* ── GHE CARDS ── */
+.ghe-list{display:flex;flex-direction:column;gap:12px}
+.ghe-item{background:#0a1f40;border:1px solid var(--border);border-radius:10px;padding:16px}
+.ghe-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.ghe-title{font-weight:700;color:var(--accent)}
+.ghe-num{background:var(--red);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:600}
+.tag-fisico{background:#1a4a8a;color:#7ec8e3}
+.tag-quimico{background:#4a1a6a;color:#c39bd3}
+.tag-biologico{background:#1a5a3a;color:#7dcea0}
+.tag-ergonomico{background:#5a3a1a;color:#e59866}
+.tag-psicossocial{background:#3a1a5a;color:#bb8fce}
+.tag-acidente{background:#5a1a1a;color:#f1948a}
+.tag-mec{background:#1a3a5a;color:#85c1e9}
+
+/* ── MATRIZ RISCO ── */
+.risco-badge{padding:3px 10px;border-radius:10px;font-size:.75rem;font-weight:700}
+.r1{background:#1a5a3a;color:#7dcea0}
+.r2{background:#3a4a1a;color:#c8e67d}
+.r3{background:#5a4a1a;color:#f0d27d}
+.r4{background:#5a2a1a;color:#f0a07d}
+.r5{background:#5a1a1a;color:#f07d7d}
+
+/* ── RISK TABLE ── */
+.risk-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:12px}
+.risk-table th{background:#0d2a50;padding:8px 10px;text-align:left;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.risk-table td{padding:8px 10px;border-bottom:1px solid rgba(42,64,128,.4);vertical-align:top}
+.risk-table tr:hover td{background:rgba(255,255,255,.03)}
+
+/* ── PSICOSSOCIAL ── */
+.psico-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:12px}
+.psico-item{background:#1a1a3a;border:1px solid var(--border);border-radius:8px;padding:12px}
+.psico-label{font-size:.8rem;color:var(--muted);margin-bottom:8px;font-weight:600}
+.toggle-row{display:flex;gap:8px;flex-wrap:wrap}
+.toggle-btn{padding:4px 12px;border:1px solid var(--border);border-radius:16px;font-size:.75rem;cursor:pointer;background:transparent;color:var(--muted);transition:.2s}
+.toggle-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ── SECTION TABS ── */
+.doc-tabs{display:flex;gap:4px;margin-bottom:20px}
+.doc-tab{padding:8px 20px;border-radius:8px 8px 0 0;cursor:pointer;font-size:.85rem;font-weight:600;border:1px solid var(--border);border-bottom:none;background:var(--card);color:var(--muted);transition:.2s}
+.doc-tab.active{background:var(--mid);color:var(--text);border-color:var(--border)}
+.doc-content{display:none}
+.doc-content.active{display:block}
+
+/* ── PREVIEW ── */
+.preview-box{background:#fff;color:#111;border-radius:10px;padding:32px;font-family:Arial,sans-serif;font-size:12px;line-height:1.6;max-height:70vh;overflow-y:auto;box-shadow:0 4px 30px rgba(0,0,0,.5)}
+.prev-title{text-align:center;font-size:18px;font-weight:700;color:#c0392b;margin-bottom:4px}
+.prev-sub{text-align:center;font-size:11px;color:#555;margin-bottom:20px}
+.prev-h1{font-size:13px;font-weight:700;background:#e8e8e8;padding:6px 10px;margin:16px 0 8px;border-left:4px solid #c0392b}
+.prev-h2{font-size:11px;font-weight:700;color:#c0392b;margin:12px 0 6px}
+.prev-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:10px}
+.prev-table th{background:#c0392b;color:#fff;padding:5px 8px;text-align:left}
+.prev-table td{padding:5px 8px;border-bottom:1px solid #ddd}
+.prev-table tr:nth-child(even) td{background:#f9f9f9}
+
+/* ── ALERTS ── */
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:.85rem}
+.alert-info{background:rgba(41,128,185,.15);border:1px solid rgba(41,128,185,.4);color:#7ec8e3}
+.alert-warn{background:rgba(243,156,18,.12);border:1px solid rgba(243,156,18,.3);color:#f8c471}
+.alert-success{background:rgba(39,174,96,.12);border:1px solid rgba(39,174,96,.3);color:#7dcea0}
+
+/* ── DOWNLOAD PANEL ── */
+.download-panel{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+.dl-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center}
+.dl-card h3{font-size:1rem;margin-bottom:6px}
+.dl-card p{font-size:.8rem;color:var(--muted);margin-bottom:14px}
+.dl-icon{font-size:2.5rem;margin-bottom:10px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .grid-2,.grid-3{grid-template-columns:1fr}
+  .download-panel{grid-template-columns:1fr}
+  .stepper{flex-wrap:wrap}
+  .step{min-width:45%}
+}
+
+/* ── TOOLTIPS ── */
+.hint{font-size:.75rem;color:var(--muted);margin-top:3px;font-style:italic}
+
+/* ── SECTION DIVIDER ── */
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+
+/* ── PROGRESS ── */
+.progress-bar{height:4px;background:var(--border);border-radius:2px;margin-bottom:28px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--accent));transition:.4s}
+
+/* ── PLANO AÇÃO TABLE ── */
+.pa-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.pa-table th{background:#0d2a50;padding:8px;font-size:.72rem;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);text-align:center}
+.pa-table td{padding:7px 8px;border-bottom:1px solid rgba(42,64,128,.4);text-align:center}
+.pa-table td:first-child,.pa-table td:nth-child(2){text-align:left}
+.meses-check{display:flex;gap:3px;flex-wrap:wrap;justify-content:center}
+.mes-cb{width:16px;height:16px;accent-color:var(--accent)}
+
+/* ── MATRIZ VISUAL ── */
+.matriz-wrap{overflow-x:auto;margin-top:16px}
+.matriz{border-collapse:collapse;font-size:.78rem}
+.matriz td,.matriz th{border:1px solid var(--border);padding:6px 10px;text-align:center;min-width:60px}
+.matriz th{background:#0d2a50;color:var(--muted)}
+.m-1{background:#1a5a3a;color:#7dcea0}
+.m-2{background:#3a4a1a;color:#dce67d}
+.m-3{background:#5a4a1a;color:#f0d27d}
+.m-4{background:#5a2a1a;color:#f0a07d}
+.m-5{background:#5a1a1a;color:#f07d7d}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚙️ Elaborador SST</h1>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <span class="badge-pgr">PGR</span>
+      <span class="badge-ltcat">LTCAT</span>
+      <span class="badge-pcmso">PCMSO</span>
+      <span class="badge-esocial">eSocial SST</span>
+    </div>
+  </div>
+  <div style="margin-left:auto;text-align:right">
+    <div style="font-size:.8rem;color:rgba(255,255,255,.6)">NR-01 · Lei 8.213/91 · NR-07</div>
+    <div id="backendBadge" style="font-size:.72rem;margin-top:4px;color:var(--muted)">⏳ Verificando backend...</div>
+  </div>
+</header>
+
+<div class="wrapper">
+
+  <!-- STEPPER -->
+  <div class="stepper" id="stepper">
+    <div class="step active" onclick="goStep(1)"><span class="step-num">1</span>Empresa</div>
+    <div class="step" onclick="goStep(2)"><span class="step-num">2</span>GHEs / Atividades</div>
+    <div class="step" onclick="goStep(3)"><span class="step-num">3</span>Inventário de Riscos</div>
+    <div class="step" onclick="goStep(4)"><span class="step-num">4</span>Gerar Documentos</div>
+    <div class="step" onclick="goStep(5)"><span class="step-num">5</span>eSocial SST</div>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:25%"></div></div>
+
+  <!-- ═══════════════════ STEP 1 — EMPRESA ═══════════════════ -->
+  <div id="step1" class="step-content">
+    <div class="card">
+      <h2>📋 Dados da Empresa</h2>
+      <div class="grid-2">
+        <div class="form-group"><label>Razão Social *</label><input id="razaoSocial" placeholder="Ex: EMPRESA LTDA ME"></div>
+        <div class="form-group"><label>CNPJ *</label><input id="cnpj" placeholder="00.000.000/0001-00" maxlength="18"></div>
+        <div class="form-group"><label>CNAE</label><input id="cnae" placeholder="Ex: 77.29-2-02"></div>
+        <div class="form-group"><label>Grau de Risco</label>
+          <select id="grauRisco"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1"><label>Endereço Completo *</label><input id="endereco" placeholder="Rua, número – Bairro – Cidade – UF – CEP"></div>
+        <div class="form-group"><label>Telefone</label><input id="telefone" placeholder="(11) 9999-9999"></div>
+        <div class="form-group"><label>E-mail</label><input id="email" placeholder="empresa@email.com.br"></div>
+        <div class="form-group"><label>Atividade / Ramo</label><input id="atividade" placeholder="Ex: Locadora de móveis e utensílios"></div>
+        <div class="form-group"><label>Nº de Funcionários</label><input id="numFunc" type="number" placeholder="Ex: 30"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🏢 CNPJs Secundários (opcional)</h2>
+      <p class="hint" style="margin-bottom:12px">Use quando dois CNPJs compartilham o mesmo estabelecimento por questões fiscais.</p>
+      <div id="cnpjSecList"></div>
+      <button class="btn btn-secondary btn-sm" onclick="addCNPJSec()">+ Adicionar CNPJ</button>
+    </div>
+
+    <div class="card">
+      <h2>🔬 Responsáveis Técnicos</h2>
+      <div class="grid-2">
+        <div class="form-group"><label>Engenheiro de Segurança *</label><input id="engNome" placeholder="Nome completo"></div>
+        <div class="form-group"><label>CREA</label><input id="engCrea" placeholder="Ex: 5063332600"></div>
+        <div class="form-group"><label>Médico do Trabalho *</label><input id="medNome" placeholder="Nome completo"></div>
+        <div class="form-group"><label>CRM</label><input id="medCrm" placeholder="Ex: 55185"></div>
+        <div class="form-group"><label>Médico Examinador (opcional)</label><input id="medExam" placeholder="Nome completo"></div>
+        <div class="form-group"><label>CRM Examinador</label><input id="medExamCrm" placeholder=""></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📅 Vistoria</h2>
+      <div class="grid-3">
+        <div class="form-group"><label>Data da Vistoria *</label><input id="dataVistoria" type="date"></div>
+        <div class="form-group"><label>Data de Emissão *</label><input id="dataEmissao" type="date"></div>
+        <div class="form-group"><label>Informante / Acompanhante</label><input id="informante" placeholder="Nome – Cargo"></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goStep(2)">Próximo → GHEs / Atividades</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ STEP 2 — GHEs ═══════════════════ -->
+  <div id="step2" class="step-content" style="display:none">
+
+    <div class="alert alert-info">
+      Cadastre os <strong>Grupos Homogêneos de Exposição (GHE)</strong>. Cada GHE corresponde a um setor com atividades similares. Os riscos serão lançados no próximo passo.
+    </div>
+
+    <div class="card">
+      <h2>📁 Grupos Homogêneos de Exposição (GHEs)</h2>
+      <div id="gheList" class="ghe-list"></div>
+      <div style="margin-top:16px">
+        <button class="btn btn-secondary" onclick="addGHE()">+ Adicionar GHE</button>
+        <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="loadTemplate()">📋 Carregar Modelo Disk-Tem</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(1)">← Voltar</button>
+      <button class="btn btn-primary" onclick="goStep(3)">Próximo → Inventário de Riscos</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ STEP 3 — INVENTÁRIO ═══════════════════ -->
+  <div id="step3" class="step-content" style="display:none">
+
+    <div class="card">
+      <h2>⚙️ Metodologia de Avaliação</h2>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:16px">Matriz 4×4 (Probabilidade × Gravidade) conforme ABNT ISO 31000 / IEC 31010</p>
+      <div class="matriz-wrap">
+        <table class="matriz">
+          <tr><th>G \ P</th><th>A - Muito improvável</th><th>B - Improvável</th><th>C - Pode ocorrer</th><th>D - Provável</th></tr>
+          <tr><th>A - Sem incapacidade</th><td class="m-1">1</td><td class="m-2">2</td><td class="m-2">2</td><td class="m-3">3</td></tr>
+          <tr><th>B - Incap. temp. ≤30d</th><td class="m-2">2</td><td class="m-2">2</td><td class="m-3">3</td><td class="m-4">4</td></tr>
+          <tr><th>C - Incap. abs. >30d</th><td class="m-2">2</td><td class="m-3">3</td><td class="m-4">4</td><td class="m-5">5</td></tr>
+          <tr><th>D - Incap. perm. / óbito</th><td class="m-3">3</td><td class="m-4">4</td><td class="m-5">5</td><td class="m-5">5</td></tr>
+        </table>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:.78rem">
+        <span class="risco-badge r1">1 – Não prioritário</span>
+        <span class="risco-badge r2">2 – Médio prazo</span>
+        <span class="risco-badge r3">3 – Curto prazo</span>
+        <span class="risco-badge r4">4 – Urgente</span>
+        <span class="risco-badge r5">5 – Imediato</span>
+      </div>
+    </div>
+
+    <!-- ABAS PSICOSSOCIAL -->
+    <div class="doc-tabs">
+      <div class="doc-tab active" onclick="switchTab(this,'tabConv')">Riscos Convencionais</div>
+      <div class="doc-tab" onclick="switchTab(this,'tabPsico')">Fatores Psicossociais (NR-01)</div>
+      <div class="doc-tab" onclick="switchTab(this,'tabErgo')">Análise Ergonômica Prévia</div>
+    </div>
+
+    <div id="tabConv" class="doc-content active">
+      <div class="card" style="margin-top:0">
+        <h2>📊 Inventário de Riscos por GHE</h2>
+        <div id="riscoList"></div>
+      </div>
+    </div>
+
+    <div id="tabPsico" class="doc-content">
+      <div class="card" style="margin-top:0">
+        <h2>🧠 Fatores de Risco Psicossociais (NR-01 item 1.5.3.1.4)</h2>
+        <div class="alert alert-info">A NR-01 (2024) exige que o GRO inclua fatores psicossociais relacionados ao trabalho. Marque os fatores identificados por GHE.</div>
+        <div id="psicoList"></div>
+      </div>
+    </div>
+
+    <div id="tabErgo" class="doc-content">
+      <div class="card" style="margin-top:0">
+        <h2>🦴 Análise Ergonômica Prévia (NR-17)</h2>
+        <div class="alert alert-info">A análise prévia ergonômica alimenta automaticamente o inventário de riscos (tipo: Ergonômico) para cada GHE.</div>
+        <div id="ergoList"></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(2)">← Voltar</button>
+      <button class="btn btn-primary" onclick="goStep(4)">Próximo → Gerar Documentos</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ STEP 4 — DOCUMENTOS ═══════════════════ -->
+  <div id="step4" class="step-content" style="display:none">
+
+    <div class="alert alert-success">✅ Dados coletados com sucesso! Gere e baixe os documentos abaixo.</div>
+
+    <div class="doc-tabs">
+      <div class="doc-tab active" onclick="switchTab(this,'docPGR')">📗 PGR</div>
+      <div class="doc-tab" onclick="switchTab(this,'docLTCAT')">📘 LTCAT</div>
+      <div class="doc-tab" onclick="switchTab(this,'docPCMSO')">📙 PCMSO</div>
+    </div>
+
+    <!-- PGR -->
+    <div id="docPGR" class="doc-content active">
+      <div class="card" style="margin-top:0">
+        <h2>📗 Programa de Gerenciamento de Riscos – PGR</h2>
+        <div class="alert alert-info">Contém: Identificação · Referências normativas · Metodologia · Inventário de Riscos · Plano de Ação</div>
+
+        <div id="previewPGR" class="preview-box" style="margin:16px 0"></div>
+
+        <h3 style="margin-top:20px">📅 Plano de Ação</h3>
+        <div id="planoAcaoTable" style="overflow-x:auto;margin-top:10px"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="downloadPGRdocx()">⬇ DOCX – PGR</button>
+          <button class="btn btn-blue" onclick="downloadPGRpdf()">⬇ PDF – PGR</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LTCAT -->
+    <div id="docLTCAT" class="doc-content">
+      <div class="card" style="margin-top:0">
+        <h2>📘 Laudo Técnico das Condições do Ambiente de Trabalho – LTCAT</h2>
+        <div class="alert alert-info">Gerado com os mesmos GHEs do PGR, avaliando o Anexo IV do Decreto 3048/99 para fins de aposentadoria especial.</div>
+
+        <div id="previewLTCAT" class="preview-box" style="margin:16px 0"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="downloadLTCATdocx()">⬇ DOCX – LTCAT</button>
+          <button class="btn btn-blue" onclick="downloadLTCATpdf()">⬇ PDF – LTCAT</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PCMSO -->
+    <div id="docPCMSO" class="doc-content">
+      <div class="card" style="margin-top:0">
+        <h2>📙 Programa de Controle Médico de Saúde Ocupacional – PCMSO</h2>
+        <div class="alert alert-info">Gerado com exames por GHE/setor, baseado nos riscos identificados no inventário.</div>
+
+        <div id="previewPCMSO" class="preview-box" style="margin:16px 0"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="downloadPCMSOdocx()">⬇ DOCX – PCMSO</button>
+          <button class="btn btn-blue" onclick="downloadPCMSOpdf()">⬇ PDF – PCMSO</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-secondary" onclick="goStep(3)">← Voltar e editar</button>
+      <button class="btn btn-primary" onclick="goStep(5)">Próximo → eSocial SST</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ STEP 5 — eSocial SST ═══════════════════ -->
+  <div id="step5" class="step-content" style="display:none">
+
+    <div class="alert alert-info">
+      🔗 Gere os <strong>eventos eSocial SST</strong> diretamente dos dados cadastrados nos passos anteriores.
+      Os XMLs são gerados localmente no seu navegador — nenhum dado é enviado para servidores externos.
+      Transmita via portal eSocial ou software de folha.
+    </div>
+
+    <div class="doc-tabs">
+      <div class="doc-tab active" onclick="switchTab(this,'esS2240')">📋 S-2240 – Cond. Ambientais</div>
+      <div class="doc-tab" onclick="switchTab(this,'esS2220')">🩺 S-2220 – ASO / Monit. Saúde</div>
+      <div class="doc-tab" onclick="switchTab(this,'esS2210')">⚠️ S-2210 – CAT</div>
+    </div>
+
+    <!-- S-2240 -->
+    <div id="esS2240" class="doc-content active">
+      <div class="card" style="margin-top:0">
+        <h2>📋 S-2240 – Condições Ambientais do Trabalho – Agentes Nocivos</h2>
+        <div class="alert alert-info">Mapeamento automático dos riscos do PGR para a <strong>Tabela 24 eSocial</strong>. Revise os códigos antes de transmitir.</div>
+        <div id="s2240Content"></div>
+      </div>
+    </div>
+
+    <!-- S-2220 -->
+    <div id="esS2220" class="doc-content">
+      <div class="card" style="margin-top:0">
+        <h2>🩺 S-2220 – Monitoramento da Saúde do Trabalhador (ASO)</h2>
+        <div class="alert alert-info">Gere o XML do ASO por trabalhador. Os exames complementares são sugeridos com base nos riscos identificados no PCMSO.</div>
+        <div id="s2220Content"></div>
+      </div>
+    </div>
+
+    <!-- S-2210 -->
+    <div id="esS2210" class="doc-content">
+      <div class="card" style="margin-top:0">
+        <h2>⚠️ S-2210 – Comunicação de Acidente de Trabalho (CAT)</h2>
+        <div class="alert alert-warn">Preencha os dados do acidente. O prazo para comunicação é de <strong>1 dia útil</strong> após o acidente.</div>
+        <div id="s2210Content"></div>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-secondary" onclick="goStep(4)">← Voltar aos Documentos</button>
+    </div>
+  </div>
+
+</div><!-- /wrapper -->
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let currentStep = 1;
+let ghes = []; // [{id, setor, cargos:'', atividades:'', riscos:[{tipo,agente,perigo,exposicao,consequencia,prob,grav,risco,controleEx,controleImpl}], psico:{...}, ergo:{...}}]
+let gheCounter = 0;
+
+const MESES = ['Nov/25','Dez/25','Jan/26','Fev/26','Mar/26','Abr/26','Mai/26','Jun/26','Jul/26','Ago/26','Set/26','Out/26'];
+
+const PROB_LABELS = {A:'A – Muito improvável',B:'B – Improvável',C:'C – Pode ocorrer',D:'D – Provável'};
+const GRAV_LABELS = {A:'A – Sem incap.',B:'B – Incap. temp. ≤30d',C:'C – Incap. abs. >30d',D:'D – Incap. perm./morte'};
+const RISCO_MATRIX = {AA:1,AB:2,AC:2,AD:3,BA:2,BB:2,BC:3,BD:4,CA:2,CB:3,CC:4,CD:5,DA:3,DB:4,DC:5,DD:5};
+
+const PSICO_FATORES = [
+  'Sobrecarga de trabalho','Falta de autonomia','Pressão por resultados',
+  'Conflitos interpessoais','Assédio moral','Assédio sexual',
+  'Jornada excessiva','Trabalho noturno habitual','Monotonia / repetitividade',
+  'Insegurança no emprego','Falta de suporte da chefia','Violência no trabalho'
+];
+
+const ERGO_ITENS = [
+  {id:'postura', label:'Postura inadequada / estática'},
+  {id:'esforco', label:'Esforço físico intenso'},
+  {id:'peso', label:'Levantamento e transporte de cargas'},
+  {id:'mov_rep', label:'Movimentos repetitivos'},
+  {id:'vibr_ms', label:'Vibração membro superior'},
+  {id:'monotonia', label:'Monotonia / ritmo imposto por máquina'},
+  {id:'display', label:'Trabalho com monitores / VDT'},
+  {id:'layout', label:'Layout inadequado do posto de trabalho'},
+];
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function goStep(n){
+  if(n===3) buildInventario();
+  if(n===4) buildPreviews();
+  if(n===5) buildEsocial();
+  document.querySelectorAll('.step-content').forEach(el=>el.style.display='none');
+  document.getElementById('step'+n).style.display='block';
+  document.querySelectorAll('.step').forEach((s,i)=>{
+    s.classList.remove('active','done');
+    if(i+1===n) s.classList.add('active');
+    else if(i+1<n) s.classList.add('done');
+  });
+  currentStep=n;
+  document.getElementById('progressFill').style.width=(n/5*100)+'%';
+  window.scrollTo(0,0);
+}
+
+function switchTab(el,id){
+  el.closest('.wrapper')||document.body;
+  const tabs=el.parentElement.querySelectorAll('.doc-tab');
+  tabs.forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  // find sibling doc-contents
+  let next=el.parentElement.nextElementSibling;
+  while(next){
+    if(next.classList.contains('doc-content')||next.id){
+      // look by id
+      break;
+    }
+    next=next.nextElementSibling;
+  }
+  // find all doc-contents in same level
+  const allContent=document.querySelectorAll('#'+id+', .doc-content');
+  // simpler: find by id
+  document.querySelectorAll('.doc-content').forEach(d=>{
+    if(d.id===id) d.classList.add('active');
+    else if(['tabConv','tabPsico','tabErgo','docPGR','docLTCAT','docPCMSO','esS2240','esS2220','esS2210'].includes(d.id)) d.classList.remove('active');
+  });
+}
+
+// ══════════════════════════════════════════════
+// CNPJ SECUNDÁRIO
+// ══════════════════════════════════════════════
+function addCNPJSec(){
+  const id='cnpjSec'+Date.now();
+  const div=document.createElement('div');
+  div.className='grid-2';div.style.marginBottom='10px';div.id=id;
+  div.innerHTML=`
+    <div class="form-group"><label>Razão Social</label><input class="cnpjSecRS" placeholder="Razão social do CNPJ secundário"></div>
+    <div class="form-group" style="position:relative"><label>CNPJ</label>
+      <input class="cnpjSecNum" placeholder="00.000.000/0001-00">
+      <button onclick="document.getElementById('${id}').remove()" style="position:absolute;right:8px;top:30px;background:none;border:none;color:#e74c3c;cursor:pointer;font-size:1.1rem">✕</button>
+    </div>`;
+  document.getElementById('cnpjSecList').appendChild(div);
+}
+
+// ══════════════════════════════════════════════
+// GHE MANAGEMENT
+// ══════════════════════════════════════════════
+function addGHE(preset=null){
+  gheCounter++;
+  const id='ghe_'+gheCounter;
+  const ghe = preset || {id,num:gheCounter,setor:'',cargos:'',atividades:'',riscos:[],psicoSelecionados:[],ergoSelecionados:[]};
+  if(!preset){ ghe.id=id; ghe.num=gheCounter; }
+  ghes.push(ghe);
+  renderGHEList();
+}
+
+function removeGHE(id){
+  ghes=ghes.filter(g=>g.id!==id);
+  renderGHEList();
+}
+
+function renderGHEList(){
+  const list=document.getElementById('gheList');
+  list.innerHTML='';
+  ghes.forEach((ghe,idx)=>{
+    const div=document.createElement('div');
+    div.className='ghe-item';
+    div.id='gheItem_'+ghe.id;
+    div.innerHTML=`
+      <div class="ghe-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="ghe-num">${idx+1}</div>
+          <input value="${ghe.setor}" placeholder="Nome do Setor / GHE" style="background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;color:var(--text);font-size:1rem;font-weight:700;width:200px" onchange="updateGHE('${ghe.id}','setor',this.value)">
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="removeGHE('${ghe.id}')">🗑 Remover</button>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Cargos (separados por vírgula)</label>
+          <textarea placeholder="Ex: Pintor, Auxiliar de Pintura" onchange="updateGHE('${ghe.id}','cargos',this.value)">${ghe.cargos}</textarea>
+        </div>
+        <div class="form-group">
+          <label>Descrição das Atividades</label>
+          <textarea placeholder="Descreva as atividades realizadas pelo grupo..." onchange="updateGHE('${ghe.id}','atividades',this.value)">${ghe.atividades}</textarea>
+        </div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function updateGHE(id,field,val){
+  const ghe=ghes.find(g=>g.id===id);
+  if(ghe) ghe[field]=val;
+}
+
+// ══════════════════════════════════════════════
+// TEMPLATE DISK-TEM
+// ══════════════════════════════════════════════
+function loadTemplate(){
+  if(ghes.length>0 && !confirm('Substituir GHEs existentes pelo modelo?')) return;
+  ghes=[]; gheCounter=0;
+  const template=[
+    {setor:'Pintura',cargos:'Pintor, Auxiliar de Pintura',atividades:'Efetuar manutenção dos materiais a serem locados realizando pequenos consertos e reformas das peças aplicando tinta e vernizes (com pincel, rolo e pistola de pintura). As atividades não seguem uma rotina definida, que varia conforme a solicitação de pedidos e da disponibilidade dos materiais.'},
+    {setor:'Marcenaria',cargos:'Marceneiro, Auxiliar de serviços de marcenaria',atividades:'Efetuar manutenção dos materiais a serem locados. Realizar pequenos consertos e reformas das peças, utilizando ferramentas manuais e elétricas. Efetuar o acabamento das peças aplicando cola de madeira. As atividades não seguem uma rotina definida.'},
+    {setor:'Tapeçaria',cargos:'Tapeceiro',atividades:'Confeccionar artefatos de tecidos, couros e sintéticos para diversos fins. Planejar as atividades de confecção e instalação destes artefatos; criar e confeccionar moldes; cortar e preparar os materiais; realizar acabamentos e montagem final.'},
+    {setor:'Expedição – Motoristas',cargos:'Motorista',atividades:'Conduzir caminhões para efetuar entregas e retiradas de materiais diversos. Efetuar carga e descarga manual dos veículos.'},
+    {setor:'Expedição',cargos:'Assistente de Expedição, Auxiliar de Expedição, Expedidor de Mercadorias, Supervisora de Expedição, Encarregado de Expedição',atividades:'Desenvolver atividades de organização e separação de pedidos a serem entregues aos clientes; efetuar controle de estoque e de retorno de materiais locados, realizando inspeções visuais.'},
+    {setor:'Portaria',cargos:'Porteiro',atividades:'Recepcionar e orientar visitantes e fornecedores. Zelar pela guarda do patrimônio observando o comportamento e movimentação de pessoas para prevenir perdas, evitar incêndios, acidentes e outras anormalidades.'},
+    {setor:'Administrativo',cargos:'Atendente, Assistente Administrativo, Assistente Adm Financeiro, Supervisora de Almoxarifado, Auxiliar Administrativo',atividades:'Efetuar atividades administrativas.'},
+    {setor:'Estoque',cargos:'Auxiliar de Expedição',atividades:'Limpam, embalam e organizam os materiais que chegam dos eventos.'},
+  ];
+  template.forEach(t=>{
+    gheCounter++;
+    const id='ghe_'+gheCounter;
+    ghes.push({id,num:gheCounter,setor:t.setor,cargos:t.cargos,atividades:t.atividades,riscos:[],psicoSelecionados:[],ergoSelecionados:[]});
+  });
+  renderGHEList();
+}
+
+// ══════════════════════════════════════════════
+// STEP 3 – INVENTÁRIO
+// ══════════════════════════════════════════════
+function buildInventario(){
+  buildRiscos();
+  buildPsico();
+  buildErgo();
+}
+
+// ─── RISCOS ───
+function buildRiscos(){
+  const container=document.getElementById('riscoList');
+  container.innerHTML='';
+  ghes.forEach((ghe,idx)=>{
+    const section=document.createElement('div');
+    section.style.marginBottom='20px';
+    section.innerHTML=`<h3 style="color:var(--accent);margin-bottom:10px">GHE ${idx+1} – ${ghe.setor||'Sem nome'}</h3>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:10px">Cargos: ${ghe.cargos||'—'}</p>`;
+
+    // Risk rows
+    const tableWrap=document.createElement('div');
+    tableWrap.style.overflowX='auto';
+    tableWrap.innerHTML=buildRiscoTable(ghe,idx);
+    section.appendChild(tableWrap);
+
+    const addBtn=document.createElement('button');
+    addBtn.className='btn btn-secondary btn-sm';addBtn.style.marginTop='8px';
+    addBtn.textContent='+ Adicionar Risco';
+    addBtn.onclick=()=>{ addRisco(ghe.id); buildRiscos(); };
+    section.appendChild(addBtn);
+
+    const hr=document.createElement('hr');hr.className='divider';
+    section.appendChild(hr);
+    container.appendChild(section);
+  });
+}
+
+function buildRiscoTable(ghe,gheIdx){
+  let rows='';
+  if(!ghe.riscos||ghe.riscos.length===0){
+    rows=`<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:16px">Nenhum risco cadastrado. Clique em "+ Adicionar Risco".</td></tr>`;
+  } else {
+    ghe.riscos.forEach((r,ri)=>{
+      const rClass='r'+(r.risco||1);
+      rows+=`<tr>
+        <td><select class="tipo-sel" style="width:100px" onchange="updateRisco('${ghe.id}',${ri},'tipo',this.value)">
+          <option ${r.tipo==='Físico'?'selected':''}>Físico</option>
+          <option ${r.tipo==='Químico'?'selected':''}>Químico</option>
+          <option ${r.tipo==='Biológico'?'selected':''}>Biológico</option>
+          <option ${r.tipo==='Ergonômico'?'selected':''}>Ergonômico</option>
+          <option ${r.tipo==='Acidente'?'selected':''}>Acidente</option>
+          <option ${r.tipo==='Psicossocial'?'selected':''}>Psicossocial</option>
+        </select></td>
+        <td><input value="${r.agente||''}" placeholder="Agente" style="width:90px" onchange="updateRisco('${ghe.id}',${ri},'agente',this.value)"></td>
+        <td><input value="${r.perigo||''}" placeholder="Perigo / circunstância" style="width:160px" onchange="updateRisco('${ghe.id}',${ri},'perigo',this.value)"></td>
+        <td><input value="${r.consequencia||''}" placeholder="Danos à saúde" style="width:130px" onchange="updateRisco('${ghe.id}',${ri},'consequencia',this.value)"></td>
+        <td><select style="width:60px" onchange="updateRiscoCalc('${ghe.id}',${ri},'prob',this.value)">
+          ${['A','B','C','D'].map(v=>`<option ${r.prob===v?'selected':''}>${v}</option>`).join('')}
+        </select></td>
+        <td><select style="width:60px" onchange="updateRiscoCalc('${ghe.id}',${ri},'grav',this.value)">
+          ${['A','B','C','D'].map(v=>`<option ${r.grav===v?'selected':''}>${v}</option>`).join('')}
+        </select></td>
+        <td><span class="risco-badge ${rClass}">${r.risco||'?'}</span></td>
+        <td><input value="${r.controleEx||''}" placeholder="Medidas existentes" style="width:130px" onchange="updateRisco('${ghe.id}',${ri},'controleEx',this.value)"></td>
+        <td><input value="${r.controleImpl||''}" placeholder="Medidas a implementar" style="width:150px" onchange="updateRisco('${ghe.id}',${ri},'controleImpl',this.value)"></td>
+        <td><input value="${r.exposicao||'Habitual e intermitente'}" style="width:120px" onchange="updateRisco('${ghe.id}',${ri},'exposicao',this.value)"></td>
+        <td><button onclick="removeRisco('${ghe.id}',${ri})" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:1rem">✕</button></td>
+      </tr>`;
+    });
+  }
+  return `<table class="risk-table">
+    <thead><tr>
+      <th>Tipo</th><th>Agente</th><th>Perigo</th><th>Consequência</th>
+      <th>P</th><th>G</th><th>Risco</th>
+      <th>Controles Existentes</th><th>A Implementar</th><th>Frequência</th><th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function addRisco(gheId){
+  const ghe=ghes.find(g=>g.id===gheId);
+  if(!ghe) return;
+  if(!ghe.riscos) ghe.riscos=[];
+  ghe.riscos.push({tipo:'Físico',agente:'',perigo:'',consequencia:'',prob:'B',grav:'B',risco:2,controleEx:'',controleImpl:'',exposicao:'Habitual e intermitente'});
+}
+
+function updateRisco(gheId,ri,field,val){
+  const ghe=ghes.find(g=>g.id===gheId);
+  if(ghe&&ghe.riscos[ri]) ghe.riscos[ri][field]=val;
+}
+
+function updateRiscoCalc(gheId,ri,field,val){
+  const ghe=ghes.find(g=>g.id===gheId);
+  if(!ghe||!ghe.riscos[ri]) return;
+  ghe.riscos[ri][field]=val;
+  const r=ghe.riscos[ri];
+  const key=(r.prob||'B')+(r.grav||'B');
+  r.risco=RISCO_MATRIX[key]||2;
+  buildRiscos();
+}
+
+function removeRisco(gheId,ri){
+  const ghe=ghes.find(g=>g.id===gheId);
+  if(ghe) ghe.riscos.splice(ri,1);
+  buildRiscos();
+}
+
+// ─── PSICOSSOCIAL ───
+function buildPsico(){
+  const container=document.getElementById('psicoList');
+  container.innerHTML='';
+  ghes.forEach((ghe,idx)=>{
+    const section=document.createElement('div');
+    section.style.marginBottom='20px';
+    section.innerHTML=`<h3 style="color:var(--accent);margin-bottom:8px">GHE ${idx+1} – ${ghe.setor||'Sem nome'}</h3>
+      <p class="hint" style="margin-bottom:10px">Selecione os fatores psicossociais identificados para este grupo:</p>`;
+
+    const grid=document.createElement('div');grid.className='psico-grid';
+    PSICO_FATORES.forEach(f=>{
+      if(!ghe.psicoSelecionados) ghe.psicoSelecionados=[];
+      const item=document.createElement('div');item.className='psico-item';
+      const active=ghe.psicoSelecionados.includes(f);
+      item.innerHTML=`<div class="toggle-btn ${active?'active':''}" onclick="togglePsico('${ghe.id}','${f}',this)" style="display:block;text-align:center;cursor:pointer">${f}</div>`;
+      grid.appendChild(item);
+    });
+
+    // Gravidade psicossocial
+    const gravDiv=document.createElement('div');gravDiv.style.marginTop='12px';
+    gravDiv.innerHTML=`<div class="form-group">
+      <label>Avaliação geral dos fatores psicossociais</label>
+      <select onchange="updateGHEField('${ghe.id}','psicoGrav',this.value)">
+        <option value="">-- selecione --</option>
+        <option ${(ghe.psicoGrav||'')==='Baixo'?'selected':''}>Baixo</option>
+        <option ${(ghe.psicoGrav||'')==='Moderado'?'selected':''}>Moderado</option>
+        <option ${(ghe.psicoGrav||'')==='Alto'?'selected':''}>Alto</option>
+        <option ${(ghe.psicoGrav||'')==='Muito alto'?'selected':''}>Muito alto</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-top:8px">
+      <label>Medidas de controle / prevenção propostas</label>
+      <textarea placeholder="Ex: Programa de QVT, política contra assédio, treinamento de lideranças..." onchange="updateGHEField('${ghe.id}','psicoMedidas',this.value)">${ghe.psicoMedidas||''}</textarea>
+    </div>`;
+
+    section.appendChild(grid);section.appendChild(gravDiv);
+    const hr=document.createElement('hr');hr.className='divider';
+    section.appendChild(hr);
+    container.appendChild(section);
+  });
+}
+
+function togglePsico(gheId,fator,el){
+  const ghe=ghes.find(g=>g.id===gheId);
+  if(!ghe) return;
+  if(!ghe.psicoSelecionados) ghe.psicoSelecionados=[];
+  const idx=ghe.psicoSelecionados.indexOf(fator);
+  if(idx>=0){ ghe.psicoSelecionados.splice(idx,1); el.classList.remove('active'); }
+  else { ghe.psicoSelecionados.push(fator); el.classList.add('active'); }
+}
+
+function updateGHEField(id,field,val){
+  const ghe=ghes.find(g=>g.id===id);
+  if(ghe) ghe[field]=val;
+}
+
+// ─── ERGONOMIA ───
+function buildErgo(){
+  const container=document.getElementById('ergoList');
+  container.innerHTML='';
+  ghes.forEach((ghe,idx)=>{
+    const section=document.createElement('div');
+    section.style.marginBottom='24px';
+    section.innerHTML=`<h3 style="color:var(--accent);margin-bottom:8px">GHE ${idx+1} – ${ghe.setor||'Sem nome'}</h3>
+      <p class="hint" style="margin-bottom:10px">Selecione os fatores ergonômicos identificados (serão incluídos automaticamente no inventário de riscos):</p>`;
+
+    if(!ghe.ergoItens) ghe.ergoItens={};
+    const grid=document.createElement('div');grid.className='grid-2';
+    ERGO_ITENS.forEach(ei=>{
+      const active=ghe.ergoItens[ei.id];
+      const cell=document.createElement('div');cell.className='psico-item';
+      cell.innerHTML=`
+        <div class="toggle-btn ${active?'active':''}" onclick="toggleErgo('${ghe.id}','${ei.id}',this)" style="display:block;text-align:center;cursor:pointer;margin-bottom:8px">${ei.label}</div>
+        <div class="grid-2" style="${active?'':'display:none'}" id="ergoDetail_${ghe.id}_${ei.id}">
+          <div class="form-group">
+            <label>Probabilidade</label>
+            <select onchange="updateErgoDetail('${ghe.id}','${ei.id}','prob',this.value)">
+              ${['A','B','C','D'].map(v=>`<option ${(ghe.ergoItens[ei.id]||{}).prob===v?'selected':''}>${v}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Gravidade</label>
+            <select onchange="updateErgoDetail('${ghe.id}','${ei.id}','grav',this.value)">
+              ${['A','B','C','D'].map(v=>`<option ${(ghe.ergoItens[ei.id]||{}).grav===v?'selected':''}>${v}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Controle a implementar</label>
+            <input placeholder="Ex: Treinamento preventivo de ergonomia" value="${(ghe.ergoItens[ei.id]||{}).controle||''}" onchange="updateErgoDetail('${ghe.id}','${ei.id}','controle',this.value)">
+          </div>
+        </div>`;
+      grid.appendChild(cell);
+    });
+    section.appendChild(grid);
+    const hr=document.createElement('hr');hr.className='divider';
+    section.appendChild(hr);
+    container.appendChild(section);
+  });
+}
+
+function toggleErgo(gheId,itemId,el){
+  const ghe=ghes.find(g=>g.id===gheId);
+  if(!ghe) return;
+  if(!ghe.ergoItens) ghe.ergoItens={};
+  if(ghe.ergoItens[itemId]){delete ghe.ergoItens[itemId];el.classList.remove('active');}
+  else {ghe.ergoItens[itemId]={prob:'C',grav:'B',controle:'Treinamento preventivo de ergonomia'};el.classList.add('active');}
+  const detail=document.getElementById('ergoDetail_'+gheId+'_'+itemId);
+  if(detail) detail.style.display=ghe.ergoItens[itemId]?'':'none';
+}
+
+function updateErgoDetail(gheId,itemId,field,val){
+  const ghe=ghes.find(g=>g.id===gheId);
+  if(ghe&&ghe.ergoItens&&ghe.ergoItens[itemId]) ghe.ergoItens[itemId][field]=val;
+}
+
+// ══════════════════════════════════════════════
+// STEP 4 – PREVIEWS
+// ══════════════════════════════════════════════
+function buildPreviews(){
+  buildPGRPreview();
+  buildLTCATPreview();
+  buildPCMSOPreview();
+  buildPlanoAcao();
+}
+
+function getEmpresa(){
+  return {
+    razao:v('razaoSocial')||'[EMPRESA]',
+    cnpj:v('cnpj')||'[CNPJ]',
+    cnae:v('cnae')||'',
+    grau:v('grauRisco')||'1',
+    endereco:v('endereco')||'[ENDEREÇO]',
+    tel:v('telefone')||'',
+    email:v('email')||'',
+    atividade:v('atividade')||'',
+    numFunc:v('numFunc')||'',
+    engNome:v('engNome')||'[ENGENHEIRO]',
+    engCrea:v('engCrea')||'',
+    medNome:v('medNome')||'[MÉDICO]',
+    medCrm:v('medCrm')||'',
+    medExam:v('medExam')||'',
+    medExamCrm:v('medExamCrm')||'',
+    dataVistoria:formatDate(v('dataVistoria')),
+    dataEmissao:formatDate(v('dataEmissao')),
+    informante:v('informante')||'',
+  };
+}
+
+function v(id){const el=document.getElementById(id);return el?el.value.trim():'';}
+function formatDate(d){if(!d)return '';const[y,m,day]=d.split('-');return `${day}/${m}/${y}`;}
+
+function buildPGRPreview(){
+  const emp=getEmpresa();
+  const allRiscos=getAllRiscosComErgo();
+  let inventHTML='';
+  ghes.forEach((ghe,i)=>{
+    const rs=getAllRiscosForGHE(ghe);
+    if(rs.length===0) return;
+    inventHTML+=`<tr style="background:#f0f0f0"><td colspan="10" style="font-weight:700;padding:6px 8px">GHE ${i+1} – ${ghe.setor} | ${ghe.cargos}</td></tr>`;
+    rs.forEach(r=>{
+      const rc=r.risco||'?';
+      inventHTML+=`<tr>
+        <td>${r.tipo}</td><td>${r.agente||'–'}</td><td>${r.perigo}</td>
+        <td>${r.exposicao||'Hab./interm.'}</td><td>${r.consequencia}</td>
+        <td>${r.prob}</td><td>${r.grav}</td><td><strong>${rc}</strong></td>
+        <td>${r.controleEx||'–'}</td><td>${r.controleImpl||'–'}</td>
+      </tr>`;
+    });
+  });
+
+  document.getElementById('previewPGR').innerHTML=`
+    <div class="prev-title">PROGRAMA DE GERENCIAMENTO DE RISCOS – PGR</div>
+    <div class="prev-sub">${emp.razao} | CNPJ: ${emp.cnpj} | CNAE: ${emp.cnae} | Grau de Risco: ${emp.grau}</div>
+    <div class="prev-sub">${emp.endereco}</div>
+
+    <div class="prev-h1">1. DADOS DA EMPRESA</div>
+    <p><b>Razão Social:</b> ${emp.razao} &nbsp;|&nbsp; <b>CNPJ:</b> ${emp.cnpj}</p>
+    <p><b>CNAE:</b> ${emp.cnae} &nbsp;|&nbsp; <b>Grau de Risco:</b> ${emp.grau} &nbsp;|&nbsp; <b>Nº Func.:</b> ${emp.numFunc}</p>
+    <p><b>Endereço:</b> ${emp.endereco}</p>
+    <p><b>Informante / Acompanhante:</b> ${emp.informante}</p>
+    <p><b>Data da vistoria:</b> ${emp.dataVistoria} &nbsp;|&nbsp; <b>Data de emissão:</b> ${emp.dataEmissao}</p>
+
+    <div class="prev-h1">2. QUALIFICAÇÃO DA EMPRESA</div>
+    <p>${emp.atividade||'Empresa atuante no setor de serviços.'}</p>
+
+    <div class="prev-h1">3. REFERÊNCIAS NORMATIVAS</div>
+    <p><b>Base legal:</b> Portaria MTb nº 3.214/78 · NR-01 (Portaria SEPRT nº 6.730/2020) · Portaria MTE nº 1.419/2024</p>
+    <p><b>Base técnica:</b> ABNT ISO 31000 · ABNT IEC 31010 · ABNT ISO/TR 31004</p>
+
+    <div class="prev-h1">4. METODOLOGIA</div>
+    <p>Matriz 4×4 de probabilidade × gravidade. Probabilidade: A (muito improvável), B (improvável), C (pode ocorrer), D (provável). Gravidade: A (sem incapacidade), B (incap. temp. ≤30d), C (incap. abs. >30d), D (incap. perm./morte). Índice 1 a 5.</p>
+
+    <div class="prev-h1">5. INVENTÁRIO DE RISCOS</div>
+    <table class="prev-table">
+      <tr><th>Tipo</th><th>Agente</th><th>Perigo</th><th>Freq. Exp.</th><th>Consequência</th><th>P</th><th>G</th><th>Risco</th><th>Ctrl. Exist.</th><th>A Impl.</th></tr>
+      ${inventHTML||'<tr><td colspan="10" style="text-align:center">Nenhum risco cadastrado.</td></tr>'}
+    </table>
+
+    ${buildPsicoHTMLPreview()}
+
+    <div class="prev-h1">8. RESPONSÁVEL TÉCNICO</div>
+    <p>${emp.dataEmissao} – ${emp.engNome} – CREA: ${emp.engCrea}</p>`;
+}
+
+function buildPsicoHTMLPreview(){
+  let html=`<div class="prev-h1">6. FATORES PSICOSSOCIAIS (NR-01 §1.5.3.1.4)</div>`;
+  let hasAny=false;
+  ghes.forEach((ghe,i)=>{
+    if(ghe.psicoSelecionados&&ghe.psicoSelecionados.length>0){
+      hasAny=true;
+      html+=`<div class="prev-h2">GHE ${i+1} – ${ghe.setor}</div>`;
+      html+=`<p><b>Fatores identificados:</b> ${ghe.psicoSelecionados.join(', ')}</p>`;
+      if(ghe.psicoGrav) html+=`<p><b>Avaliação geral:</b> ${ghe.psicoGrav}</p>`;
+      if(ghe.psicoMedidas) html+=`<p><b>Medidas propostas:</b> ${ghe.psicoMedidas}</p>`;
+    }
+  });
+  if(!hasAny) html+=`<p>Nenhum fator psicossocial identificado.</p>`;
+  return html;
+}
+
+function getAllRiscosForGHE(ghe){
+  const lista=[...(ghe.riscos||[])];
+  // Adiciona riscos ergonômicos
+  if(ghe.ergoItens){
+    ERGO_ITENS.forEach(ei=>{
+      if(ghe.ergoItens[ei.id]){
+        const d=ghe.ergoItens[ei.id];
+        const key=(d.prob||'C')+(d.grav||'B');
+        lista.push({
+          tipo:'Ergonômico',agente:'–',perigo:ei.label,
+          exposicao:'Habitual e intermitente',consequencia:'Problemas musculoesqueléticos',
+          prob:d.prob||'C',grav:d.grav||'B',risco:RISCO_MATRIX[key]||3,
+          controleEx:'–',controleImpl:d.controle||'Treinamento preventivo de ergonomia'
+        });
+      }
+    });
+  }
+  return lista;
+}
+
+function getAllRiscosComErgo(){
+  let all=[];
+  ghes.forEach(g=>all=[...all,...getAllRiscosForGHE(g)]);
+  return all;
+}
+
+function buildPlanoAcao(){
+  const wrap=document.getElementById('planoAcaoTable');
+  // Coletar todas as medidas a implementar
+  const acoes=[];
+  ghes.forEach((ghe,i)=>{
+    const rs=getAllRiscosForGHE(ghe);
+    rs.forEach(r=>{
+      if(r.controleImpl&&r.controleImpl.trim()&&r.controleImpl!=='–'){
+        acoes.push({ghe:i+1,setor:ghe.setor,acao:r.controleImpl});
+      }
+    });
+  });
+
+  const mesesHeader=MESES.map(m=>`<th style="min-width:50px;font-size:.7rem">${m}</th>`).join('');
+  let rows='';
+  acoes.forEach(a=>{
+    const mesesCbs=MESES.map(()=>`<td><input type="checkbox" class="mes-cb"></td>`).join('');
+    rows+=`<tr><td>${a.ghe}</td><td>${a.setor}</td><td>${a.acao}</td>${mesesCbs}<td><input placeholder="Resp." style="width:80px"></td><td><select style="width:90px"><option>Pendente</option><option>Em andamento</option><option>Concluído</option></select></td></tr>`;
+  });
+
+  wrap.innerHTML=`<table class="pa-table">
+    <thead><tr><th>GHE</th><th>Setor</th><th>Controle a Implementar</th>${mesesHeader}<th>Responsável</th><th>Status</th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="16" style="text-align:center;color:var(--muted)">Nenhuma ação pendente.</td></tr>'}</tbody>
+  </table>`;
+}
+
+function buildLTCATPreview(){
+  const emp=getEmpresa();
+  let tbody='';
+  ghes.forEach((ghe,i)=>{
+    const anexoIV='Os riscos identificados no PGR não constam no Anexo IV do Decreto 3048/99';
+    const esocial='09.01.001 – Ausência de fator de risco ou de atividades previstas no Anexo IV';
+    tbody+=`<tr>
+      <td>${i+1}</td><td>${ghe.setor}</td><td>${ghe.cargos}</td>
+      <td style="font-size:10px">${ghe.atividades.substring(0,100)}...</td>
+      <td style="font-size:10px">${anexoIV}</td>
+      <td style="font-size:10px">${esocial}</td>
+      <td><b>Não</b></td>
+    </tr>`;
+  });
+
+  document.getElementById('previewLTCAT').innerHTML=`
+    <div class="prev-title">LAUDO TÉCNICO DAS CONDIÇÕES DO AMBIENTE DE TRABALHO – LTCAT</div>
+    <div class="prev-sub">${emp.razao} | CNPJ: ${emp.cnpj} | Revisão: ${emp.dataEmissao}</div>
+
+    <div class="prev-h1">1. DADOS DA EMPRESA</div>
+    <p><b>Empresa:</b> ${emp.razao} &nbsp;|&nbsp; <b>CNPJ:</b> ${emp.cnpj} &nbsp;|&nbsp; <b>CNAE:</b> ${emp.cnae} &nbsp;|&nbsp; <b>Grau de Risco:</b> ${emp.grau}</p>
+    <p><b>Endereço:</b> ${emp.endereco}</p>
+    <p><b>Informante:</b> ${emp.informante} &nbsp;|&nbsp; <b>Data da vistoria:</b> ${emp.dataVistoria}</p>
+
+    <div class="prev-h1">2. QUALIFICAÇÃO DA EMPRESA</div>
+    <p>${emp.atividade||'Empresa atuante no setor de serviços.'}</p>
+
+    <div class="prev-h1">3. REFERÊNCIAS NORMATIVAS</div>
+    <p><b>Base legal:</b> Lei nº 8.213/1991 · Decreto nº 3.048/1999 · Decreto nº 8.373/2014</p>
+    <p><b>Base técnica:</b> Normas de Higiene Ocupacional – Fundacentro</p>
+
+    <div class="prev-h1">4. DESENVOLVIMENTO – LTCAT e Aposentadoria Especial</div>
+    <p>Conforme Decreto 3.048/99 Art. 64 §1º, a efetiva exposição a agente prejudicial à saúde configura-se quando, mesmo após a adoção das medidas de controle previstas na legislação trabalhista, a nocividade não seja eliminada ou neutralizada.</p>
+    <p>Foram utilizados os mesmos GHE descritos no PGR, avaliados conforme Anexo IV do Decreto 3048/99.</p>
+
+    <div class="prev-h1">5. DESCRIÇÃO DOS SETORES E CARGOS</div>
+    <table class="prev-table">
+      <tr><th>GHE</th><th>Setor</th><th>Cargos</th><th>Atividades</th><th>Anexo IV Dec. 3048</th><th>eSocial Tab.24</th><th>Aposen. Especial</th></tr>
+      ${tbody||'<tr><td colspan="7" style="text-align:center">Nenhum GHE cadastrado.</td></tr>'}
+    </table>
+
+    <div class="prev-h1">6. RECOMENDAÇÕES TÉCNICAS</div>
+    <p>Priorizar a eliminação dos riscos. Não sendo possível, neutralizar ou minimizar através de EPCs e, complementarmente, EPIs. Efetuar treinamentos específicos por atividade. Cumprir as recomendações e cronogramas do PGR.</p>
+
+    <div class="prev-h1">7. RESPONSÁVEL PELA AVALIAÇÃO</div>
+    <p>${emp.dataEmissao} – ${emp.engNome} – Eng. de Segurança do Trabalho – CREA: ${emp.engCrea}</p>`;
+}
+
+function buildPCMSOPreview(){
+  const emp=getEmpresa();
+  let tbody='';
+  ghes.forEach((ghe,i)=>{
+    const rs=getAllRiscosForGHE(ghe);
+    const temRuido=rs.some(r=>r.agente&&r.agente.toLowerCase().includes('ruído'));
+    const temQuim=rs.some(r=>r.tipo==='Químico');
+    const temErgo=rs.some(r=>r.tipo==='Ergonômico');
+    const compl=[];
+    if(temRuido) compl.push('Audiometria (anual)');
+    if(temQuim) compl.push('Ác. hipúrico · Ác. metil-hipúrico');
+    const complementares=compl.length?compl.join('<br>'):'Não aplicável';
+    tbody+=`<tr>
+      <td>${i+1}</td><td>${ghe.setor}</td><td style="font-size:10px">${ghe.cargos}</td>
+      <td style="font-size:10px">${rs.map(r=>`${r.tipo}: ${r.perigo}`).join('<br>')||'–'}</td>
+      <td>Adm. · Periódico (anual) · Demissional</td>
+      <td style="font-size:10px">${complementares}</td>
+    </tr>`;
+  });
+
+  document.getElementById('previewPCMSO').innerHTML=`
+    <div class="prev-title">PROGRAMA DE CONTROLE MÉDICO DE SAÚDE OCUPACIONAL – PCMSO</div>
+    <div class="prev-sub">${emp.razao} | CNPJ: ${emp.cnpj} | Validade: ${emp.dataEmissao} a ${addOneYear(emp.dataEmissao)}</div>
+
+    <div class="prev-h1">1. COORDENADOR DO PCMSO</div>
+    <p><b>Médico Coordenador:</b> ${emp.medNome} &nbsp;|&nbsp; <b>CRM:</b> ${emp.medCrm}</p>
+    ${emp.medExam?`<p><b>Médico Examinador:</b> ${emp.medExam} &nbsp;|&nbsp; <b>CRM:</b> ${emp.medExamCrm}</p>`:''}
+    <p><b>Validade:</b> ${emp.dataEmissao} a ${addOneYear(emp.dataEmissao)}</p>
+
+    <div class="prev-h1">2. IDENTIFICAÇÃO</div>
+    <p><b>Empresa:</b> ${emp.razao} | <b>CNPJ:</b> ${emp.cnpj} | <b>CNAE:</b> ${emp.cnae} | <b>Grau:</b> ${emp.grau}</p>
+    <p><b>Endereço:</b> ${emp.endereco}</p>
+
+    <div class="prev-h1">3. PERIODICIDADE DOS EXAMES</div>
+    <p><b>Admissional:</b> Antes de o empregado assumir suas atividades.</p>
+    <p><b>Periódico:</b> Anualmente, de acordo com a exposição aos riscos identificados no PGR.</p>
+    <p><b>Retorno ao trabalho:</b> Exame clínico antes do retorno após ausência ≥ 30 dias.</p>
+    <p><b>Mudança de função:</b> Antes da data da mudança, adequando-se ao novo risco.</p>
+    <p><b>Demissional:</b> Até 10 dias após o término do contrato (dispensado se periódico < 135 dias).</p>
+
+    <div class="prev-h1">4. RELAÇÃO DE EXAMES POR FUNÇÃO / SETOR</div>
+    <table class="prev-table">
+      <tr><th>GHE</th><th>Setor</th><th>Cargos</th><th>Riscos / Agentes</th><th>Avaliação Clínica</th><th>Complementares</th></tr>
+      ${tbody||'<tr><td colspan="6" style="text-align:center">Nenhum GHE cadastrado.</td></tr>'}
+    </table>
+
+    <div class="prev-h1">5. PRIMEIROS SOCORROS</div>
+    <p>Todo estabelecimento deve possuir caixa de primeiros socorros com: tesoura, pinça, luvas de procedimentos, gaze estéril, esparadrapo, atadura de crepe, curativo adesivo, antisséptico e soro fisiológico.</p>
+
+    <div class="prev-h1">6. RESPONSÁVEL</div>
+    <p>${emp.medNome} – Médico do Trabalho – CRM: ${emp.medCrm} – Coordenador do PCMSO</p>`;
+}
+
+function addOneYear(dateStr){
+  if(!dateStr||!dateStr.includes('/')) return '';
+  const [d,m,y]=dateStr.split('/');
+  return `${d}/${m}/${parseInt(y)+1}`;
+}
+
+// ══════════════════════════════════════════════
+// DOWNLOAD DOCX – PGR
+// ══════════════════════════════════════════════
+async function downloadPGRdocx(){
+  const emp=getEmpresa();
+  const script=document.createElement('script');
+  script.src='https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js';
+  document.head.appendChild(script);
+  await new Promise(r=>script.onload=r);
+
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,
+         HeadingLevel,AlignmentType,WidthType,BorderStyle,ShadingType,
+         LevelFormat,PageBreak}=window.docx;
+
+  const border={style:BorderStyle.SINGLE,size:1,color:'CCCCCC'};
+  const borders={top:border,bottom:border,left:border,right:border};
+  const h1=(text)=>new Paragraph({heading:HeadingLevel.HEADING_1,children:[new TextRun({text,bold:true,color:'C0392B',size:26,font:'Arial'})]});
+  const h2=(text)=>new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text,bold:true,size:22,font:'Arial'})]});
+  const p=(text,opts={})=>new Paragraph({children:[new TextRun({text,font:'Arial',size:20,...opts})]});
+  const br=()=>new Paragraph({children:[]});
+
+  // Build risk table rows
+  const riskRows=[];
+  const hdr=(t)=>new TableCell({borders,shading:{fill:'1E3A5F',type:ShadingType.CLEAR},margins:{top:60,bottom:60,left:100,right:100},children:[new Paragraph({children:[new TextRun({text:t,bold:true,color:'FFFFFF',size:16,font:'Arial'})]})]})
+  riskRows.push(new TableRow({children:['Tipo','Agente','Perigo','Freq. Exp.','Consequência','P','G','Risco','Ctrl. Existentes','A Implementar'].map(hdr)}));
+
+  ghes.forEach((ghe,i)=>{
+    // GHE header row
+    riskRows.push(new TableRow({children:[new TableCell({columnSpan:10,borders,shading:{fill:'E8E8E8',type:ShadingType.CLEAR},margins:{top:60,bottom:60,left:100,right:100},children:[new Paragraph({children:[new TextRun({text:`GHE ${i+1} – ${ghe.setor} | ${ghe.cargos}`,bold:true,size:18,font:'Arial'})]})]})]}));
+    const rs=getAllRiscosForGHE(ghe);
+    rs.forEach(r=>{
+      const cell=(t)=>new TableCell({borders,margins:{top:40,bottom:40,left:80,right:80},children:[new Paragraph({children:[new TextRun({text:String(t||'–'),size:16,font:'Arial'})]})]});
+      riskRows.push(new TableRow({children:[r.tipo,r.agente||'–',r.perigo,r.exposicao||'Hab./interm.',r.consequencia,r.prob,r.grav,String(r.risco||'?'),r.controleEx||'–',r.controleImpl||'–'].map(cell)}));
+    });
+  });
+
+  const CW=800;
+  const riskTable=new Table({width:{size:9026,type:WidthType.DXA},columnWidths:[900,800,1600,900,1100,450,450,550,1100,1176],rows:riskRows});
+
+  const children=[
+    new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'PROGRAMA DE GERENCIAMENTO DE RISCOS – PGR',bold:true,size:32,color:'C0392B',font:'Arial'})]}),
+    new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:emp.razao,size:24,font:'Arial'})]}),
+    new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:`CNPJ: ${emp.cnpj} | CNAE: ${emp.cnae} | Grau de Risco: ${emp.grau}`,size:20,color:'555555',font:'Arial'})]}),
+    br(),
+    h1('1. DADOS DA EMPRESA'),
+    p(`Empresa: ${emp.razao}`),p(`CNPJ: ${emp.cnpj}`),p(`CNAE: ${emp.cnae} | Grau de Risco: ${emp.grau}`),
+    p(`Endereço: ${emp.endereco}`),p(`Telefone: ${emp.tel}`),p(`Nº de Funcionários: ${emp.numFunc}`),
+    p(`Informante: ${emp.informante}`),p(`Data da vistoria: ${emp.dataVistoria} | Emissão: ${emp.dataEmissao}`),br(),
+    h1('2. QUALIFICAÇÃO DA EMPRESA'),p(emp.atividade||'Empresa atuante no setor de serviços.'),br(),
+    h1('3. REFERÊNCIAS NORMATIVAS'),
+    h2('3.1 Base legal'),
+    p('Portaria MTb nº 3.214/1978 – NR relativas à Segurança e Medicina do Trabalho'),
+    p('Portaria SEPRT nº 6.730/2020 – NR-01 – Disposições Gerais e GRO'),
+    p('Portaria MTE nº 1.419/2024 – Atualização NR-01'),br(),
+    h2('3.2 Base técnica'),
+    p('ABNT ISO 31000 – Gestão de Riscos – Diretrizes'),
+    p('ABNT IEC 31010 – Gestão de Riscos – Técnicas de avaliação de riscos'),br(),
+    h1('4. METODOLOGIA'),
+    p('Foi utilizada uma matriz 4×4 (probabilidade × gravidade), conforme ABNT ISO 31000 / IEC 31010. Os níveis de probabilidade são: A (muito improvável), B (improvável), C (pode ocorrer) e D (provável que ocorra). A gravidade é classificada em: A (sem incapacidade), B (incapacidade temporária ≤ 30 dias), C (incapacidade absoluta > 30 dias) e D (incapacidade permanente ou óbito). O índice de risco resultante varia de 1 (não prioritário) a 5 (ação imediata).'),br(),
+    h1('5. GRUPOS HOMOGÊNEOS DE EXPOSIÇÃO (GHEs)'),
+    ...ghes.map((g,i)=>[h2(`GHE ${i+1} – ${g.setor}`),p(`Cargos: ${g.cargos}`),p(`Atividades: ${g.atividades}`),br()]).flat(),
+    h1('6. INVENTÁRIO DE RISCOS'),
+    riskTable,br(),
+    h1('7. FATORES PSICOSSOCIAIS'),
+    p('A NR-01 (Portaria MTE nº 1.419/2024) determina que o GRO abranja os fatores de risco psicossociais relacionados ao trabalho (item 1.5.3.1.4).'),
+    ...ghes.map((g,i)=>{
+      if(!g.psicoSelecionados||g.psicoSelecionados.length===0) return [];
+      return [h2(`GHE ${i+1} – ${g.setor}`),
+        p(`Fatores identificados: ${g.psicoSelecionados.join(', ')}`),
+        g.psicoGrav?p(`Avaliação geral: ${g.psicoGrav}`):null,
+        g.psicoMedidas?p(`Medidas propostas: ${g.psicoMedidas}`):null,br()
+      ].filter(Boolean);
+    }).flat(),
+    h1('8. DA GARANTIA'),
+    p('A Empresa garante que na ocorrência de perigos e riscos ambientais nos locais de trabalho que coloquem em situação de grave e iminente risco um ou mais trabalhadores, os mesmos possam interromper de imediato as suas atividades, comunicando o fato ao superior hierárquico direto para as devidas providências.'),br(),
+    p(`São Paulo, ${emp.dataEmissao}`),br(),
+    p(`${emp.engNome}`),
+    p(`Engenheiro de Segurança do Trabalho – CREA: ${emp.engCrea}`),
+  ];
+
+  const doc=new Document({
+    styles:{default:{document:{run:{font:'Arial',size:20}}}},
+    sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1134,right:1134,bottom:1134,left:1134}}},children}]
+  });
+
+  const buffer=await Packer.toBuffer(doc);
+  downloadBlob(buffer,'PGR_'+emp.razao.replace(/[^a-zA-Z0-9]/g,'_')+'.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+}
+
+// ══════════════════════════════════════════════
+// DOWNLOAD PDF – PGR
+// ══════════════════════════════════════════════
+function downloadPGRpdf(){
+  const emp=getEmpresa();
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  let y=20;
+
+  // Title
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(192,57,43);
+  doc.text('PROGRAMA DE GERENCIAMENTO DE RISCOS – PGR',105,y,{align:'center'});y+=8;
+  doc.setFontSize(10);doc.setTextColor(80,80,80);
+  doc.text(emp.razao,105,y,{align:'center'});y+=5;
+  doc.text(`CNPJ: ${emp.cnpj} | CNAE: ${emp.cnae} | Grau de Risco: ${emp.grau}`,105,y,{align:'center'});y+=10;
+
+  const h1=(txt)=>{
+    if(y>260){doc.addPage();y=20;}
+    doc.setFillColor(30,58,95);doc.rect(14,y-4,182,8,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(255,255,255);
+    doc.text(txt,16,y+1);y+=10;doc.setTextColor(30,30,30);
+  };
+  const p=(txt)=>{
+    if(y>265){doc.addPage();y=20;}
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(50,50,50);
+    const lines=doc.splitTextToSize(txt,178);
+    doc.text(lines,14,y);y+=lines.length*5+2;
+  };
+
+  h1('1. DADOS DA EMPRESA');
+  p(`Empresa: ${emp.razao} | CNPJ: ${emp.cnpj} | CNAE: ${emp.cnae} | Grau: ${emp.grau}`);
+  p(`Endereço: ${emp.endereco}`);
+  p(`Vistoria: ${emp.dataVistoria} | Emissão: ${emp.dataEmissao} | Informante: ${emp.informante}`);
+
+  h1('2. QUALIFICAÇÃO DA EMPRESA');
+  p(emp.atividade||'Empresa atuante no setor de serviços.');
+
+  h1('3. METODOLOGIA – MATRIZ 4×4');
+  p('Probabilidade: A (muito improvável), B (improvável), C (pode ocorrer), D (provável). Gravidade: A (sem incapacidade), B (incap. temp. ≤30d), C (incap. abs. >30d), D (incap. perm./morte). Índice de risco: 1 a 5.');
+
+  h1('4. INVENTÁRIO DE RISCOS');
+  const rows=[];
+  ghes.forEach((ghe,i)=>{
+    const rs=getAllRiscosForGHE(ghe);
+    rows.push([{content:`GHE ${i+1} – ${ghe.setor}`,colSpan:8,styles:{fillColor:[220,220,220],fontStyle:'bold'}}]);
+    rs.forEach(r=>rows.push([r.tipo,r.agente||'–',r.perigo.substring(0,30),r.consequencia.substring(0,25),r.prob,r.grav,String(r.risco||'?'),r.controleImpl?.substring(0,25)||'–']));
+  });
+  doc.autoTable({startY:y,head:[['Tipo','Agente','Perigo','Consequência','P','G','Risco','A Impl.']],body:rows,styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[192,57,43]},margin:{left:14,right:14}});
+  y=doc.lastAutoTable.finalY+8;
+
+  h1('5. RESPONSÁVEL TÉCNICO');
+  p(`${emp.dataEmissao} – ${emp.engNome} – CREA: ${emp.engCrea}`);
+
+  doc.save('PGR_'+emp.razao.replace(/[^a-zA-Z0-9]/g,'_')+'.pdf');
+}
+
+// ══════════════════════════════════════════════
+// DOWNLOAD LTCAT
+// ══════════════════════════════════════════════
+async function downloadLTCATdocx(){
+  const emp=getEmpresa();
+  const script=document.querySelector('script[src*="docx.umd"]')||document.createElement('script');
+  if(!window.docx){
+    script.src='https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js';
+    document.head.appendChild(script);
+    await new Promise(r=>script.onload=r);
+  }
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,HeadingLevel,AlignmentType,WidthType,BorderStyle,ShadingType}=window.docx;
+  const border={style:BorderStyle.SINGLE,size:1,color:'CCCCCC'};
+  const borders={top:border,bottom:border,left:border,right:border};
+  const h1=(t)=>new Paragraph({heading:HeadingLevel.HEADING_1,children:[new TextRun({text:t,bold:true,color:'1A5276',font:'Arial',size:24})]});
+  const p=(t)=>new Paragraph({children:[new TextRun({text:t,font:'Arial',size:20})]});
+  const br=()=>new Paragraph({children:[]});
+
+  const hdrC=(t)=>new TableCell({borders,shading:{fill:'C0392B',type:ShadingType.CLEAR},margins:{top:60,bottom:60,left:80,right:80},children:[new Paragraph({children:[new TextRun({text:t,bold:true,color:'FFFFFF',size:16,font:'Arial'})]})]});
+  const ltRows=[new TableRow({children:['GHE','Setor','Cargos','Atividades','Anexo IV Dec. 3048','eSocial Tab.24','Aposen. Especial'].map(hdrC)})];
+  ghes.forEach((g,i)=>{
+    const cell=(t)=>new TableCell({borders,margins:{top:40,bottom:40,left:80,right:80},children:[new Paragraph({children:[new TextRun({text:String(t||'–'),size:16,font:'Arial'})]})]});
+    ltRows.push(new TableRow({children:[String(i+1),g.setor,g.cargos,g.atividades.substring(0,120)+'...','Os riscos identificados no PGR não constam no Anexo IV do Decreto 3048/99','09.01.001 – Ausência de fator de risco previsto no Anexo IV','Não'].map(cell)}));
+  });
+
+  const children=[
+    new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'LAUDO TÉCNICO DAS CONDIÇÕES DO AMBIENTE DE TRABALHO – LTCAT',bold:true,size:28,color:'1A5276',font:'Arial'})]}),
+    new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:emp.razao,size:22,font:'Arial'})]}),br(),
+    h1('1. DADOS DA EMPRESA'),p(`Empresa: ${emp.razao} | CNPJ: ${emp.cnpj}`),p(`CNAE: ${emp.cnae} | Grau de Risco: ${emp.grau}`),p(`Endereço: ${emp.endereco}`),p(`Informante: ${emp.informante}`),p(`Data da vistoria: ${emp.dataVistoria}`),br(),
+    h1('2. QUALIFICAÇÃO DA EMPRESA'),p(emp.atividade||'Empresa atuante no setor de serviços.'),br(),
+    h1('3. REFERÊNCIAS NORMATIVAS'),p('Base legal: Lei nº 8.213/1991 · Decreto nº 3.048/1999 · Decreto nº 8.373/2014'),p('Base técnica: Normas de Higiene Ocupacional – FUNDACENTRO'),br(),
+    h1('4. OBJETIVOS'),p('O LTCAT tem por finalidade cumprir as exigências do Art. 58 da Lei nº 8.213/91, dar sustentabilidade técnica às condições ambientais existentes e subsidiar o enquadramento das atividades quanto ao recolhimento das Alíquotas Suplementares do SAT.'),br(),
+    h1('5. DESENVOLVIMENTO – LTCAT e Aposentadoria Especial'),p('Conforme Decreto 3.048/99 Art. 64 §1º, a efetiva exposição a agente prejudicial à saúde configura-se quando, mesmo após a adoção das medidas de controle previstas na legislação trabalhista, a nocividade não seja eliminada ou neutralizada. Foram utilizados os mesmos GHEs descritos no PGR, avaliados conforme Anexo IV do Decreto 3048/99.'),br(),
+    h1('6. DESCRIÇÃO DOS SETORES E CARGOS'),
+    new Table({width:{size:9026,type:WidthType.DXA},columnWidths:[500,1000,1500,2000,1500,1500,1026],rows:ltRows}),br(),
+    h1('7. RECOMENDAÇÕES TÉCNICAS'),p('Priorizar a eliminação dos riscos. Não sendo possível, neutralizar ou minimizar através de EPCs e, complementarmente, EPIs. Efetuar treinamentos específicos e manter registros de entrega de EPI atualizados.'),br(),
+    p(`São Paulo, ${emp.dataEmissao}`),br(),p(`${emp.engNome}`),p(`Engenheiro de Segurança do Trabalho – CREA: ${emp.engCrea}`),
+  ];
+
+  const doc=new Document({sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1134,right:1134,bottom:1134,left:1134}}},children}]});
+  const buffer=await Packer.toBuffer(doc);
+  downloadBlob(buffer,'LTCAT_'+emp.razao.replace(/[^a-zA-Z0-9]/g,'_')+'.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+}
+
+function downloadLTCATpdf(){
+  const emp=getEmpresa();
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  let y=20;
+  doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(26,82,118);
+  doc.text('LTCAT – LAUDO TÉCNICO DAS CONDIÇÕES DO AMBIENTE DE TRABALHO',105,y,{align:'center'});y+=8;
+  doc.setFontSize(10);doc.setTextColor(80,80,80);doc.text(emp.razao,105,y,{align:'center'});y+=10;
+
+  const h=(t)=>{doc.setFillColor(26,82,118);doc.rect(14,y-4,182,8,'F');doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(255,255,255);doc.text(t,16,y+1);y+=10;doc.setTextColor(30,30,30);};
+  const px=(t)=>{doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(50,50,50);const l=doc.splitTextToSize(t,178);doc.text(l,14,y);y+=l.length*5+2;};
+
+  h('1. DADOS DA EMPRESA');
+  px(`Empresa: ${emp.razao} | CNPJ: ${emp.cnpj} | CNAE: ${emp.cnae} | Grau: ${emp.grau}`);
+  px(`Endereço: ${emp.endereco}`);px(`Vistoria: ${emp.dataVistoria} | Emissão: ${emp.dataEmissao}`);
+
+  h('2. SETORES E CARGOS');
+  const rows=ghes.map((g,i)=>[i+1,g.setor,g.cargos,g.atividades.substring(0,80)+'...','Não']);
+  doc.autoTable({startY:y,head:[['GHE','Setor','Cargos','Atividades','Aposen. Esp.']],body:rows,styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[192,57,43]},margin:{left:14,right:14}});
+  y=doc.lastAutoTable.finalY+8;
+
+  h('3. RESPONSÁVEL');px(`${emp.dataEmissao} – ${emp.engNome} – CREA: ${emp.engCrea}`);
+  doc.save('LTCAT_'+emp.razao.replace(/[^a-zA-Z0-9]/g,'_')+'.pdf');
+}
+
+// ══════════════════════════════════════════════
+// DOWNLOAD PCMSO
+// ══════════════════════════════════════════════
+async function downloadPCMSOdocx(){
+  const emp=getEmpresa();
+  if(!window.docx){
+    const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js';
+    document.head.appendChild(s);await new Promise(r=>s.onload=r);
+  }
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,HeadingLevel,AlignmentType,WidthType,BorderStyle,ShadingType}=window.docx;
+  const border={style:BorderStyle.SINGLE,size:1,color:'CCCCCC'};
+  const borders={top:border,bottom:border,left:border,right:border};
+  const h1=(t)=>new Paragraph({heading:HeadingLevel.HEADING_1,children:[new TextRun({text:t,bold:true,color:'6C3483',font:'Arial',size:24})]});
+  const p=(t)=>new Paragraph({children:[new TextRun({text:t,font:'Arial',size:20})]});
+  const br=()=>new Paragraph({children:[]});
+
+  const hC=(t)=>new TableCell({borders,shading:{fill:'6C3483',type:ShadingType.CLEAR},margins:{top:60,bottom:60,left:80,right:80},children:[new Paragraph({children:[new TextRun({text:t,bold:true,color:'FFFFFF',size:16,font:'Arial'})]})]});
+  const exRows=[new TableRow({children:['GHE','Setor','Cargos','Agentes/Riscos','Avaliação Clínica','Complementares'].map(hC)})];
+  ghes.forEach((g,i)=>{
+    const rs=getAllRiscosForGHE(g);
+    const temRuido=rs.some(r=>r.agente&&r.agente.toLowerCase().includes('ruído'));
+    const compl=temRuido?'Audiometria (anual)':'Não aplicável';
+    const cell=(t)=>new TableCell({borders,margins:{top:40,bottom:40,left:80,right:80},children:[new Paragraph({children:[new TextRun({text:String(t||'–'),size:16,font:'Arial'})]})]});
+    exRows.push(new TableRow({children:[String(i+1),g.setor,g.cargos,rs.map(r=>r.tipo+': '+r.perigo).join('; ')||'–','Adm. · Periódico (anual) · Demissional',compl].map(cell)}));
+  });
+
+  const children=[
+    new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'PROGRAMA DE CONTROLE MÉDICO DE SAÚDE OCUPACIONAL – PCMSO',bold:true,size:28,color:'6C3483',font:'Arial'})]}),
+    new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:emp.razao,size:22,font:'Arial'})]}),br(),
+    h1('1. COORDENADOR DO PCMSO'),p(`Médico Coordenador: ${emp.medNome} | CRM: ${emp.medCrm}`),
+    emp.medExam?p(`Médico Examinador: ${emp.medExam} | CRM: ${emp.medExamCrm}`):br(),
+    p(`Validade: ${emp.dataEmissao} a ${addOneYear(emp.dataEmissao)}`),br(),
+    h1('2. IDENTIFICAÇÃO'),p(`Empresa: ${emp.razao} | CNPJ: ${emp.cnpj} | CNAE: ${emp.cnae} | Grau: ${emp.grau}`),p(`Endereço: ${emp.endereco}`),br(),
+    h1('3. OBJETIVOS'),p('Criar cultura prevencionista em todos os níveis hierárquicos da empresa. Promover à saúde dos colaboradores através da prevenção, rastreando o diagnóstico precoce dos danos à saúde. Proteger e preservar a saúde de seus empregados em relação aos riscos ocupacionais, conforme PGR.'),br(),
+    h1('4. PERIODICIDADE DOS EXAMES'),
+    p('Admissional: antes de o empregado assumir suas atividades.'),
+    p('Periódico: anualmente, de acordo com a exposição aos riscos identificados no PGR.'),
+    p('Retorno ao trabalho: exame clínico antes do retorno após ausência ≥ 30 dias por doença/acidente.'),
+    p('Mudança de função: obrigatoriamente antes da mudança.'),
+    p('Demissional: até 10 dias após o término do contrato (dispensado se periódico < 135 dias).'),br(),
+    h1('5. RELAÇÃO DE EXAMES POR FUNÇÃO / SETOR'),
+    new Table({width:{size:9026,type:WidthType.DXA},columnWidths:[500,1000,1500,2000,1500,1526],rows:exRows}),br(),
+    h1('6. PRIMEIROS SOCORROS'),p('Todo estabelecimento deve estar equipado com material necessário à prestação de primeiros socorros, guardado em local adequado e de fácil acesso: tesoura, pinça, luvas de procedimentos, gaze estéril, esparadrapo, atadura de crepe, curativos adesivos, antisséptico e soro fisiológico.'),br(),
+    h1('7. PLANEJAMENTO ANUAL'),p('Ver Plano de Ação gerado no PGR. Periodicidade das ações médicas: campanha de vacinação contra gripe (setembro), campanha contra dengue (junho), periódico (novembro), admissional/demissional (todo o ano), relatório analítico (novembro).'),br(),
+    p(`São Paulo, ${emp.dataEmissao}`),br(),p(`${emp.medNome}`),p(`Médico do Trabalho – CRM: ${emp.medCrm}`),p('Coordenador do PCMSO'),
+  ];
+
+  const doc=new Document({sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1134,right:1134,bottom:1134,left:1134}}},children}]});
+  const buffer=await Packer.toBuffer(doc);
+  downloadBlob(buffer,'PCMSO_'+emp.razao.replace(/[^a-zA-Z0-9]/g,'_')+'.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+}
+
+function downloadPCMSOpdf(){
+  const emp=getEmpresa();
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  let y=20;
+  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(108,52,131);
+  doc.text('PCMSO – PROGRAMA DE CONTROLE MÉDICO DE SAÚDE OCUPACIONAL',105,y,{align:'center'});y+=8;
+  doc.setFontSize(10);doc.setTextColor(80,80,80);doc.text(emp.razao,105,y,{align:'center'});y+=10;
+
+  const h=(t)=>{doc.setFillColor(108,52,131);doc.rect(14,y-4,182,8,'F');doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(255,255,255);doc.text(t,16,y+1);y+=10;doc.setTextColor(30,30,30);};
+  const px=(t)=>{doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(50,50,50);const l=doc.splitTextToSize(t,178);doc.text(l,14,y);y+=l.length*5+2;};
+
+  h('1. COORDENADOR');px(`${emp.medNome} | CRM: ${emp.medCrm}`);px(`Validade: ${emp.dataEmissao} a ${addOneYear(emp.dataEmissao)}`);
+  h('2. IDENTIFICAÇÃO');px(`Empresa: ${emp.razao} | CNPJ: ${emp.cnpj}`);px(`Endereço: ${emp.endereco}`);
+  h('3. RELAÇÃO DE EXAMES');
+  const rows=ghes.map((g,i)=>{
+    const rs=getAllRiscosForGHE(g);
+    const temRuido=rs.some(r=>r.agente&&r.agente.toLowerCase().includes('ruído'));
+    return [i+1,g.setor,g.cargos.substring(0,40),'Adm · Periódico · Demissional',temRuido?'Audiometria':'N/A'];
+  });
+  doc.autoTable({startY:y,head:[['GHE','Setor','Cargos','Avaliação Clínica','Complementares']],body:rows,styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[108,52,131]},margin:{left:14,right:14}});
+  y=doc.lastAutoTable.finalY+8;
+  h('4. RESPONSÁVEL');px(`${emp.medNome} – CRM: ${emp.medCrm} – Coordenador PCMSO`);
+  doc.save('PCMSO_'+emp.razao.replace(/[^a-zA-Z0-9]/g,'_')+'.pdf');
+}
+
+// ══════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════
+function downloadBlob(buffer,filename,mime){
+  const blob=new Blob([buffer],{type:mime});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
+}
+
+// ══════════════════════════════════════════════
+// eSocial SST – TABELA 24 (Agentes Nocivos)
+// ══════════════════════════════════════════════
+const ESOCIAL_TAB24 = [
+  {cod:'01.01.001', dsc:'Ruído contínuo ou intermitente',           unMed:'dB(A)',     limTol:'85',  grupo:'Físico',    keys:['ruído','ruido','noise','acústico']},
+  {cod:'01.02.001', dsc:'Vibrações – corpo inteiro',                unMed:'m/s²',      limTol:'',    grupo:'Físico',    keys:['vibração corpo','whole body','vibração de corpo']},
+  {cod:'01.02.002', dsc:'Vibrações – membros superiores',           unMed:'m/s²',      limTol:'',    grupo:'Físico',    keys:['vibração membro','vibr_ms','hand arm','membro superior']},
+  {cod:'01.06.001', dsc:'Calor',                                    unMed:'°C IBUTG',  limTol:'',    grupo:'Físico',    keys:['calor','heat','temperatura elevada','ibutg']},
+  {cod:'01.07.001', dsc:'Frio',                                     unMed:'°C',        limTol:'',    grupo:'Físico',    keys:['frio','cold','temperatura baixa']},
+  {cod:'01.05.001', dsc:'Radiações ionizantes',                     unMed:'mSv/ano',   limTol:'20',  grupo:'Físico',    keys:['radiação ionizante','raio x','radioativo','ionizante']},
+  {cod:'01.04.001', dsc:'Radiações não ionizantes (UV, IR, laser)', unMed:'J/m²',      limTol:'',    grupo:'Físico',    keys:['uv','ultravioleta','infravermelho','laser','não ionizante']},
+  {cod:'01.03.001', dsc:'Pressão atmosférica anormal',              unMed:'kPa',       limTol:'',    grupo:'Físico',    keys:['pressão atmosférica','hiperbáric','mergulho']},
+  {cod:'02.01.001', dsc:'Poeiras de sílica livre cristalizada',     unMed:'mg/m³',     limTol:'0,1', grupo:'Químico',   keys:['sílica','silica','quartzo']},
+  {cod:'02.02.001', dsc:'Poeiras de amianto (asbesto)',             unMed:'f/cm³',     limTol:'',    grupo:'Químico',   keys:['amianto','asbesto','asbestos']},
+  {cod:'02.01.003', dsc:'Poeiras de madeira',                       unMed:'mg/m³',     limTol:'1',   grupo:'Químico',   keys:['poeira de madeira','serragem','wood dust','marcen']},
+  {cod:'02.01.006', dsc:'Poeiras inorgânicas e fibras diversas',    unMed:'mg/m³',     limTol:'',    grupo:'Químico',   keys:['poeira','pó inorgânico','dust','particulado']},
+  {cod:'02.03.009', dsc:'Benzeno',                                  unMed:'ppm',       limTol:'0,5', grupo:'Químico',   keys:['benzeno','benzene']},
+  {cod:'02.03.010', dsc:'Tolueno',                                  unMed:'ppm',       limTol:'78',  grupo:'Químico',   keys:['tolueno','toluene']},
+  {cod:'02.03.025', dsc:'Tintas, vernizes e solventes (névoas)',    unMed:'ppm',       limTol:'',    grupo:'Químico',   keys:['tinta','verniz','paint','solvente','thinner','aguarrás']},
+  {cod:'02.03.002', dsc:'Acetona',                                  unMed:'ppm',       limTol:'780', grupo:'Químico',   keys:['acetona','acetone']},
+  {cod:'02.03.031', dsc:'Xileno',                                   unMed:'ppm',       limTol:'78',  grupo:'Químico',   keys:['xileno','xylene']},
+  {cod:'02.03.001', dsc:'Ácido clorídrico',                         unMed:'ppm',       limTol:'1',   grupo:'Químico',   keys:['ácido clorídrico','hcl','ácido']},
+  {cod:'03.01.001', dsc:'Agentes biológicos (bactérias, fungos, vírus)', unMed:'',    limTol:'',    grupo:'Biológico', keys:['biológico','biologic','bacteria','vírus','fungo','agente bio','parasita']},
+  {cod:'09.01.001', dsc:'Ausência de fator de risco previsto no Anexo IV', unMed:'', limTol:'',    grupo:'Neutro',    keys:[]},
+];
+
+function autoMapTab24(risco){
+  const txt = ((risco.agente||'')+(risco.perigo||'')).toLowerCase();
+  for(const ag of ESOCIAL_TAB24){
+    if(ag.cod==='09.01.001') continue;
+    for(const k of ag.keys){ if(txt.includes(k)) return ag.cod; }
+  }
+  if(risco.tipo==='Biológico') return '03.01.001';
+  if(risco.tipo==='Químico')   return '02.01.006';
+  if(risco.tipo==='Físico')    return '01.01.001';
+  return '09.01.001';
+}
+
+// ── Shared XML utils ──
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function downloadText(content,filename,mime){
+  const blob=new Blob([content],{type:mime});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
+}
+
+// ══════════════════════════════════════════════
+// ESOCIAL MAIN ENTRY
+// ══════════════════════════════════════════════
+function buildEsocial(){
+  buildS2240();
+  buildS2220();
+  buildS2210();
+}
+
+// ══════════════════════════════════════════════
+// S-2240 – Condições Ambientais do Trabalho
+// ══════════════════════════════════════════════
+let s2240Workers = {};   // {gheId: [{cpf,nis,mat}]}
+let s2240AgOverride = {}; // {gheId_ri: codAgNoc}
+
+function buildS2240(){
+  const container = document.getElementById('s2240Content');
+  container.innerHTML = '';
+  if(!ghes.length){
+    container.innerHTML='<div class="alert alert-warn">Nenhum GHE cadastrado. Volte ao passo 2 e cadastre os GHEs.</div>';
+    return;
+  }
+
+  // Configurações globais
+  container.insertAdjacentHTML('beforeend',`
+    <div style="background:#0a1f40;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+      <h3 style="color:var(--text);margin-bottom:12px;font-size:.95rem">⚙️ Configurações do Evento</h3>
+      <div class="grid-3">
+        <div class="form-group"><label>Competência (mês/ano)</label>
+          <input type="month" id="s2240Comp" value="${new Date().toISOString().slice(0,7)}"></div>
+        <div class="form-group"><label>Ambiente eSocial</label>
+          <select id="s2240TpAmb">
+            <option value="1">1 – Produção</option>
+            <option value="2">2 – Homologação / Teste</option>
+          </select></div>
+        <div class="form-group"><label>Tipo</label>
+          <select id="s2240Retif">
+            <option value="1">1 – Original</option>
+            <option value="2">2 – Retificação</option>
+          </select></div>
+      </div>
+    </div>`);
+
+  ghes.forEach((ghe,idx)=>{
+    if(!s2240Workers[ghe.id]) s2240Workers[ghe.id]=[];
+    const riscos = getAllRiscosForGHE(ghe).filter(r=>r.tipo!=='Acidente'&&r.tipo!=='Psicossocial');
+
+    const agentRows = riscos.map((r,ri)=>{
+      const key = ghe.id+'_'+ri;
+      const sugCod = s2240AgOverride[key] || autoMapTab24(r);
+      const sugAg  = ESOCIAL_TAB24.find(a=>a.cod===sugCod)||ESOCIAL_TAB24[ESOCIAL_TAB24.length-1];
+      const isNeutro = sugCod==='09.01.001';
+      return `<tr>
+        <td><span class="tag tag-${r.tipo.toLowerCase()}" style="font-size:.7rem">${r.tipo}</span></td>
+        <td style="font-size:.8rem">${r.agente||r.perigo}</td>
+        <td><select style="width:100%;font-size:.75rem" onchange="s2240AgOverride['${ghe.id}_${ri}']=this.value;rebuildS2240Row('${ghe.id}')">
+          ${ESOCIAL_TAB24.map(a=>`<option value="${a.cod}" ${a.cod===sugCod?'selected':''}>${a.cod} – ${a.dsc}</option>`).join('')}
+        </select></td>
+        <td><select style="width:80px" id="s2240tpAval_${ghe.id}_${ri}">
+          <option value="1" ${!isNeutro?'selected':''}>1 – Quant.</option>
+          <option value="2" ${isNeutro?'selected':''}>2 – Qualit.</option>
+        </select></td>
+        <td><input id="s2240Int_${ghe.id}_${ri}" placeholder="medido" style="width:80px" value="${sugAg.limTol||''}"></td>
+        <td><input id="s2240LT_${ghe.id}_${ri}"  placeholder="limite" style="width:70px" value="${sugAg.limTol||''}"></td>
+        <td><select id="s2240EPC_${ghe.id}_${ri}" style="width:55px"><option value="S">S</option><option value="N">N</option></select></td>
+        <td><select id="s2240EPI_${ghe.id}_${ri}" style="width:55px"><option value="S">S</option><option value="N">N</option></select></td>
+      </tr>`;
+    }).join('');
+
+    const workers = s2240Workers[ghe.id];
+    const workerHTML = workers.length ? workers.map((w,wi)=>`
+      <div class="worker-row grid-3" style="margin-bottom:8px">
+        <div class="form-group"><label>CPF</label><input value="${w.cpf||''}" placeholder="000.000.000-00" oninput="s2240Workers['${ghe.id}'][${wi}].cpf=this.value"></div>
+        <div class="form-group"><label>NIS/PIS</label><input value="${w.nis||''}" placeholder="00000000000" oninput="s2240Workers['${ghe.id}'][${wi}].nis=this.value"></div>
+        <div class="form-group"><label>Matrícula</label><input value="${w.mat||''}" placeholder="001" oninput="s2240Workers['${ghe.id}'][${wi}].mat=this.value">
+          <button onclick="s2240Workers['${ghe.id}'].splice(${wi},1);buildS2240()" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:.9rem;margin-top:4px">✕ Remover</button>
+        </div>
+      </div>`).join('') : `<p class="hint">Sem trabalhadores cadastrados — XML de ambiente geral será gerado com dados fictícios de vinculo.</p>`;
+
+    const div = document.createElement('div');
+    div.className='esocial-event';
+    div.id='s2240Sec_'+ghe.id;
+    div.innerHTML=`
+      <h3>GHE ${idx+1} – ${ghe.setor||'Sem nome'}</h3>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:12px">Cargos: ${ghe.cargos||'—'} &nbsp;|&nbsp; Atividades: ${(ghe.atividades||'').substring(0,80)}${ghe.atividades&&ghe.atividades.length>80?'...':''}</p>
+
+      <h4 style="font-size:.85rem;color:var(--text);margin-bottom:8px">Agentes Nocivos → Tabela 24 eSocial</h4>
+      ${riscos.length ? `<div style="overflow-x:auto">
+        <table class="risk-table">
+          <thead><tr><th>Tipo</th><th>Agente/Perigo</th><th>Código Tabela 24</th><th>Avaliação</th><th>Intensidade</th><th>Limite</th><th>EPC eficaz</th><th>EPI eficaz</th></tr></thead>
+          <tbody>${agentRows}</tbody>
+        </table></div>` : '<div class="alert alert-warn" style="margin-top:0">Nenhum agente nocivo neste GHE. Adicione riscos no Passo 3.</div>'}
+
+      <h4 style="font-size:.85rem;color:var(--text);margin:16px 0 8px">Trabalhadores do GHE</h4>
+      <div id="s2240WList_${ghe.id}">${workerHTML}</div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="s2240Workers['${ghe.id}'].push({cpf:'',nis:'',mat:''});buildS2240()">+ Adicionar Trabalhador</button>
+
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn btn-blue" onclick="gerarXmlS2240('${ghe.id}',${idx})">⬇ XML S-2240 – GHE ${idx+1}</button>
+        <button class="btn btn-success" onclick="enviarS2240ViaBackend('${ghe.id}',${idx})">🚀 Enviar ao eSocial</button>
+        <button class="btn btn-secondary" onclick="toggleXmlPreview('s2240Prev_${ghe.id}',()=>buildXmlS2240('${ghe.id}',${idx}))">👁 Pré-visualizar</button>
+      </div>
+      <div id="s2240Prev_${ghe.id}" style="display:none;margin-top:12px"></div>`;
+    container.appendChild(div);
+  });
+
+  const btnAll=document.createElement('div');
+  btnAll.className='btn-row';btnAll.style.marginTop='8px';
+  btnAll.innerHTML=`<button class="btn btn-primary" onclick="ghes.forEach((g,i)=>gerarXmlS2240(g.id,i))">⬇ Baixar todos os XMLs S-2240</button>`;
+  container.appendChild(btnAll);
+}
+
+function rebuildS2240Row(gheId){buildS2240();}
+
+function buildXmlS2240(gheId, gheIdx){
+  const emp = getEmpresa();
+  const ghe = ghes.find(g=>g.id===gheId);
+  if(!ghe) return '';
+  const cnpjNum = emp.cnpj.replace(/\D/g,'');
+  const cnpj8   = cnpjNum.substring(0,8);
+  const comp    = document.getElementById('s2240Comp')?.value || new Date().toISOString().slice(0,7);
+  const tpAmb   = document.getElementById('s2240TpAmb')?.value || '1';
+  const retif   = document.getElementById('s2240Retif')?.value || '1';
+  const ts      = Date.now();
+
+  const riscos = getAllRiscosForGHE(ghe).filter(r=>r.tipo!=='Acidente'&&r.tipo!=='Psicossocial');
+  const agNocXML = riscos.length ? riscos.map((r,ri)=>{
+    const key  = gheId+'_'+ri;
+    const cod  = s2240AgOverride[key] || autoMapTab24(r);
+    const ag   = ESOCIAL_TAB24.find(a=>a.cod===cod)||ESOCIAL_TAB24[ESOCIAL_TAB24.length-1];
+    const tpAv = document.getElementById(`s2240tpAval_${gheId}_${ri}`)?.value || '2';
+    const intn = document.getElementById(`s2240Int_${gheId}_${ri}`)?.value  || '';
+    const lt   = document.getElementById(`s2240LT_${gheId}_${ri}`)?.value   || '';
+    const epc  = document.getElementById(`s2240EPC_${gheId}_${ri}`)?.value  || 'S';
+    const epi  = document.getElementById(`s2240EPI_${gheId}_${ri}`)?.value  || 'S';
+    const isNeutro = cod==='09.01.001';
+    return `
+        <agNoc>
+          <codAgNoc>${cod}</codAgNoc>
+          <dscAgNoc>${esc(ag.dsc)}</dscAgNoc>
+          <tpAval>${tpAv}</tpAval>
+          ${intn?`<intConc>${esc(intn)}</intConc>`:''}
+          ${lt?`<limTol>${esc(lt)}</limTol>`:''}
+          ${ag.unMed?`<unMed>${esc(ag.unMed)}</unMed>`:''}
+          <tecMedAval>${tpAv==='1'?'1':'2'}</tecMedAval>
+          <epcEficaz>${epc}</epcEficaz>
+          <epiEficaz>${epi}</epiEficaz>
+          <ativ>${isNeutro?'2':'1'}</ativ>
+          <abert>N</abert>
+        </agNoc>`;
+  }).join('') : `
+        <agNoc>
+          <codAgNoc>09.01.001</codAgNoc>
+          <dscAgNoc>Ausência de fator de risco previsto no Anexo IV</dscAgNoc>
+          <tpAval>2</tpAval>
+          <tecMedAval>2</tecMedAval>
+          <epcEficaz>S</epcEficaz>
+          <epiEficaz>N</epiEficaz>
+          <ativ>2</ativ>
+          <abert>N</abert>
+        </agNoc>`;
+
+  const workers = (s2240Workers[gheId]||[]).length ? s2240Workers[gheId] : [{cpf:'00000000000',nis:'00000000000',mat:'001'}];
+  return workers.map((w,wi)=>{
+    const evtId=`ID${cnpjNum}${ts}${gheIdx}${wi}`;
+    const cpf=(w.cpf||'').replace(/\D/g,'').padStart(11,'0').substring(0,11);
+    const nis=(w.nis||'').replace(/\D/g,'').padStart(11,'0').substring(0,11);
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<eSocial xmlns="http://www.esocial.gov.br/schema/evt/evtExpRisco/v_S_01_03_00"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <evtExpRisco Id="${evtId}">
+    <ideEvento>
+      <indRetif>${retif}</indRetif>
+      <perApur>${comp}</perApur>
+      <tpAmb>${tpAmb}</tpAmb>
+      <procEmi>1</procEmi>
+      <verProc>1.0</verProc>
+    </ideEvento>
+    <ideEmpregador>
+      <tpInsc>1</tpInsc>
+      <nrInsc>${cnpj8}</nrInsc>
+    </ideEmpregador>
+    <ideVinculo>
+      <cpfTrab>${cpf}</cpfTrab>
+      <nisTrab>${nis}</nisTrab>
+      <matricula>${esc(w.mat||'001')}</matricula>
+    </ideVinculo>
+    <infoAmb>
+      <localAmb>
+        <tpInsc>1</tpInsc>
+        <nrInsc>${cnpjNum}</nrInsc>
+        <dscSetor>${esc(ghe.setor||'GHE '+(gheIdx+1))}</dscSetor>
+      </localAmb>
+      <prgAmb>
+        <codAmb>1</codAmb>
+        <obsAmb>${esc((ghe.atividades||'Atividades do setor '+ghe.setor).substring(0,999))}</obsAmb>
+        ${agNocXML}
+      </prgAmb>
+    </infoAmb>
+  </evtExpRisco>
+</eSocial>`;
+  }).join('\n\n<!-- Próximo trabalhador -->\n\n');
+}
+
+function gerarXmlS2240(gheId, gheIdx){
+  const xml=buildXmlS2240(gheId,gheIdx);
+  const ghe=ghes.find(g=>g.id===gheId);
+  downloadText(xml,`S-2240_GHE${gheIdx+1}_${(ghe?.setor||'').replace(/[^a-zA-Z0-9]/g,'_')}.xml`,'application/xml');
+}
+
+function toggleXmlPreview(previewId, buildFn){
+  const prev=document.getElementById(previewId);
+  if(!prev) return;
+  if(prev.style.display==='none'||!prev.innerHTML){
+    const xml=buildFn();
+    prev.style.display='block';
+    prev.innerHTML=`<div class="xml-preview">${escHtml(xml)}</div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="document.getElementById('${previewId}').style.display='none'">Fechar</button>`;
+  } else { prev.style.display='none'; }
+}
+
+// ══════════════════════════════════════════════
+// S-2220 – Monitoramento da Saúde / ASO
+// ══════════════════════════════════════════════
+let asoList = [];
+let asoCounter = 0;
+
+const EXAMES_DISPONIVEIS = [
+  {cod:'75836840',    dsc:'Consulta médica do trabalho (exame clínico)'},
+  {cod:'0211020011',  dsc:'Audiometria tonal (anual)'},
+  {cod:'0211070010',  dsc:'Raios X de coluna lombar'},
+  {cod:'0204030080',  dsc:'Hemograma completo'},
+  {cod:'0204030410',  dsc:'Ácido hipúrico (urina) – tolueno'},
+  {cod:'0204030428',  dsc:'Ác. metil-hipúrico (urina) – xileno'},
+  {cod:'0211111191',  dsc:'Espirometria / prova de função pulmonar'},
+  {cod:'0204030030',  dsc:'Glicemia de jejum'},
+  {cod:'0204030218',  dsc:'Hemoglobina glicada (HbA1c)'},
+  {cod:'0211060089',  dsc:'Eletrocardiograma de repouso (ECG)'},
+  {cod:'0204030260',  dsc:'Perfil lipídico (colesterol + triglicerídeos)'},
+  {cod:'0204020043',  dsc:'Urina tipo I (EAS)'},
+  {cod:'0204030550',  dsc:'Benzeno – ácido trans-trans mucônico (urina)'},
+];
+
+function buildS2220(){
+  const container=document.getElementById('s2220Content');
+  if(!container) return;
+  container.innerHTML=`
+    <div style="background:#0a1f40;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+      <h3 style="color:var(--accent);margin-bottom:8px;font-size:.95rem">📂 Importar Planilha Nominal de Trabalhadores</h3>
+      <p class="hint" style="margin-bottom:10px">Importe um arquivo <strong>CSV ou TXT</strong> com os dados dos trabalhadores. Formato esperado das colunas:<br>
+        <code style="background:#0d1117;padding:3px 8px;border-radius:4px;font-size:.75rem;color:#7ec8e3">Nome, CPF, NIS/PIS, Matrícula, GHE/Setor, DataASO (AAAA-MM-DD), TipoASO (1=Adm 2=Per 3=Ret 4=Mud 9=Dem)</code>
+      </p>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <label class="btn btn-secondary" style="cursor:pointer">
+          📋 Selecionar Planilha (CSV)
+          <input type="file" id="csvInput" accept=".csv,.txt" style="display:none" onchange="importarPlanilha(this)">
+        </label>
+        <button class="btn btn-secondary btn-sm" onclick="baixarModeloCSV()">⬇ Baixar Modelo CSV</button>
+        <span id="csvStatus" style="font-size:.8rem;color:var(--muted)"></span>
+      </div>
+    </div>
+    <div id="s2220AsoList"></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-secondary" onclick="addAso()">+ Adicionar ASO / Trabalhador</button>
+      ${asoList.length?`<button class="btn btn-blue" onclick="gerarTodosS2220()">⬇ Gerar todos os XMLs S-2220</button>`:''}
+    </div>`;
+  renderAsoList();
+}
+
+function importarPlanilha(input){
+  const file=input.files[0];
+  if(!file) return;
+  const status=document.getElementById('csvStatus');
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const text=e.target.result;
+    const lines=text.split(/\r?\n/).filter(l=>l.trim());
+    // Detect separator (comma or semicolon)
+    const sep=lines[0].includes(';')?';':',';
+    let count=0;
+    // Skip header line if first line doesn't look like data
+    const startLine=isNaN(parseFloat(lines[0].split(sep)[1]?.replace(/\D/g,'')))||lines[0].toLowerCase().includes('nome')?1:0;
+    for(let i=startLine;i<lines.length;i++){
+      const cols=lines[i].split(sep).map(c=>c.replace(/"/g,'').trim());
+      if(cols.length<2) continue;
+      const [nome='',cpf='',nis='',mat='',setor='',dtAso='',tpAso='2']=cols;
+      if(!cpf&&!nome) continue;
+      // Find GHE by setor name
+      const gheMatch=ghes.find(g=>g.setor&&g.setor.toLowerCase().includes(setor.toLowerCase()));
+      asoCounter++;
+      asoList.push({
+        id:'aso_'+asoCounter,
+        nome:nome.trim(),
+        cpf:cpf.replace(/\D/g,''),
+        nis:nis.replace(/\D/g,''),
+        mat:mat.trim()||String(asoCounter),
+        cargo:'',
+        dtAso:dtAso.trim()||new Date().toISOString().split('T')[0],
+        tpAso:(tpAso.trim()||'2').substring(0,1),
+        resAso:'1',
+        gheId:gheMatch?.id||ghes[0]?.id||'',
+        exames:[{cod:'75836840',dt:dtAso.trim()||'',res:'1'}]
+      });
+      count++;
+    }
+    status.textContent=`✅ ${count} trabalhador(es) importado(s)`;
+    buildS2220();
+  };
+  reader.onerror=()=>{ document.getElementById('csvStatus').textContent='❌ Erro ao ler o arquivo'; };
+  reader.readAsText(file,'UTF-8');
+}
+
+function baixarModeloCSV(){
+  const gheNomes=ghes.map(g=>g.setor).join(' | ')||'Administrativo';
+  const csv=`Nome,CPF,NIS/PIS,Matricula,GHE/Setor,DataASO,TipoASO
+João da Silva,12345678900,12345678900,001,${ghes[0]?.setor||'Administrativo'},${new Date().toISOString().split('T')[0]},2
+Maria Souza,98765432100,98765432100,002,${ghes[1]?.setor||ghes[0]?.setor||'Administrativo'},${new Date().toISOString().split('T')[0]},2
+`;
+  downloadText(csv,'modelo_planilha_nominal_s2220.csv','text/csv;charset=utf-8');
+}
+
+function gerarTodosS2220(){
+  asoList.forEach((_,ai)=>gerarXmlS2220(ai));
+}
+
+function addAso(){
+  asoCounter++;
+  asoList.push({
+    id:'aso_'+asoCounter, cpf:'', nis:'', mat:'', cargo:'',
+    dtAso:new Date().toISOString().split('T')[0],
+    tpAso:'2', resAso:'1',
+    gheId:ghes[0]?.id||'',
+    exames:[{cod:'75836840',dt:'',res:'1'}]
+  });
+  renderAsoList();
+}
+
+function renderAsoList(){
+  const container=document.getElementById('s2220AsoList');
+  if(!container) return;
+  container.innerHTML='';
+  if(!asoList.length){
+    container.innerHTML='<p class="hint">Nenhum ASO cadastrado. Clique em "+ Adicionar ASO" para iniciar.</p>';
+    return;
+  }
+  asoList.forEach((aso,ai)=>{
+    const gheOpts=ghes.map(g=>`<option value="${g.id}" ${g.id===aso.gheId?'selected':''}>GHE – ${g.setor}</option>`).join('');
+    const ghe=ghes.find(g=>g.id===aso.gheId);
+    const rs=ghe?getAllRiscosForGHE(ghe):[];
+    const temRuido=rs.some(r=>(r.agente||'').toLowerCase().includes('ruído')||(r.perigo||'').toLowerCase().includes('ruído'));
+    const temQuim=rs.some(r=>r.tipo==='Químico');
+
+    const exRows=aso.exames.map((ex,ei)=>`
+      <div class="worker-row grid-3" style="margin-bottom:6px">
+        <div class="form-group"><label>Procedimento</label>
+          <select oninput="asoList[${ai}].exames[${ei}].cod=this.value">
+            ${EXAMES_DISPONIVEIS.map(e=>`<option value="${e.cod}" ${e.cod===ex.cod?'selected':''}>${e.dsc}</option>`).join('')}
+          </select></div>
+        <div class="form-group"><label>Data do Exame</label>
+          <input type="date" value="${ex.dt||aso.dtAso}" oninput="asoList[${ai}].exames[${ei}].dt=this.value"></div>
+        <div class="form-group"><label>Resultado</label>
+          <select oninput="asoList[${ai}].exames[${ei}].res=this.value">
+            <option value="1" ${ex.res==='1'?'selected':''}>1 – Normal</option>
+            <option value="2" ${ex.res==='2'?'selected':''}>2 – Alterado</option>
+          </select>
+          <button onclick="asoList[${ai}].exames.splice(${ei},1);renderAsoList()" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:.8rem;margin-top:4px">✕ Remover exame</button>
+        </div>
+      </div>`).join('');
+
+    const div=document.createElement('div');
+    div.className='esocial-event';
+    div.innerHTML=`
+      <div class="ghe-header">
+        <h3>ASO ${ai+1}</h3>
+        <button class="btn btn-secondary btn-sm" onclick="asoList.splice(${ai},1);renderAsoList()">🗑 Remover</button>
+      </div>
+      <div class="grid-3">
+        <div class="form-group" style="grid-column:1/3"><label>Nome do Trabalhador</label>
+          <input placeholder="Nome completo" value="${aso.nome||''}" oninput="asoList[${ai}].nome=this.value"></div>
+        <div class="form-group"><label>Cargo / Função</label>
+          <input placeholder="Ex: Pintor" value="${aso.cargo||''}" oninput="asoList[${ai}].cargo=this.value"></div>
+        <div class="form-group"><label>CPF *</label>
+          <input placeholder="000.000.000-00" value="${aso.cpf}" oninput="asoList[${ai}].cpf=this.value"></div>
+        <div class="form-group"><label>NIS / PIS *</label>
+          <input placeholder="00000000000" value="${aso.nis}" oninput="asoList[${ai}].nis=this.value"></div>
+        <div class="form-group"><label>Matrícula</label>
+          <input placeholder="001" value="${aso.mat}" oninput="asoList[${ai}].mat=this.value"></div>
+        <div class="form-group"><label>GHE / Setor</label>
+          <select onchange="asoList[${ai}].gheId=this.value;renderAsoList()">${gheOpts}</select></div>
+        <div class="form-group"><label>Data do ASO *</label>
+          <input type="date" value="${aso.dtAso}" oninput="asoList[${ai}].dtAso=this.value"></div>
+        <div class="form-group"><label>Tipo de ASO</label>
+          <select oninput="asoList[${ai}].tpAso=this.value">
+            <option value="1" ${aso.tpAso==='1'?'selected':''}>1 – Admissional</option>
+            <option value="2" ${aso.tpAso==='2'?'selected':''}>2 – Periódico</option>
+            <option value="3" ${aso.tpAso==='3'?'selected':''}>3 – Retorno ao trabalho</option>
+            <option value="4" ${aso.tpAso==='4'?'selected':''}>4 – Mudança de função</option>
+            <option value="9" ${aso.tpAso==='9'?'selected':''}>9 – Demissional</option>
+          </select></div>
+        <div class="form-group"><label>Resultado do ASO</label>
+          <select oninput="asoList[${ai}].resAso=this.value">
+            <option value="1" ${aso.resAso==='1'?'selected':''}>1 – Apto</option>
+            <option value="2" ${aso.resAso==='2'?'selected':''}>2 – Inapto</option>
+          </select></div>
+      </div>
+      ${temRuido?'<div class="alert alert-warn" style="margin-top:8px">⚠️ GHE com risco de ruído – adicione Audiometria nos exames complementares.</div>':''}
+      ${temQuim?'<div class="alert alert-warn" style="margin-top:4px">⚠️ GHE com agente químico – verifique exames toxicológicos aplicáveis.</div>':''}
+
+      <h4 style="font-size:.85rem;color:var(--text);margin:16px 0 8px">Exames Realizados</h4>
+      <div>${exRows}</div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:6px"
+        onclick="asoList[${ai}].exames.push({cod:'75836840',dt:'',res:'1'});renderAsoList()">+ Adicionar Exame</button>
+
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn btn-blue" onclick="gerarXmlS2220(${ai})">⬇ XML S-2220 – ASO ${ai+1}</button>
+        <button class="btn btn-success" onclick="enviarS2220ViaBackend(${ai})">🚀 Enviar ao eSocial</button>
+        <button class="btn btn-secondary" onclick="toggleXmlPreview('s2220Prev_${ai}',()=>buildXmlS2220(${ai}))">👁 Pré-visualizar XML</button>
+      </div>
+      <div id="s2220Prev_${ai}" style="display:none;margin-top:12px"></div>`;
+    container.appendChild(div);
+  });
+}
+
+function buildXmlS2220(ai){
+  const aso=asoList[ai];
+  const emp=getEmpresa();
+  const cnpjNum=emp.cnpj.replace(/\D/g,'');
+  const cnpj8=cnpjNum.substring(0,8);
+  const evtId=`ID${cnpjNum}${Date.now()}${ai}`;
+  const cpf=(aso.cpf||'').replace(/\D/g,'').padStart(11,'0').substring(0,11);
+  const nis=(aso.nis||'').replace(/\D/g,'').padStart(11,'0').substring(0,11);
+  const nrCRM=(emp.medCrm||'').replace(/\D/g,'')||'00000';
+  const ufCRM=((emp.medCrm||'SP').match(/[A-Za-z]{2}$/)||['SP'])[0].toUpperCase().substring(0,2);
+
+  const examesXML=aso.exames.map((ex,ei)=>`
+      <exame>
+        <dtExm>${ex.dt||aso.dtAso}</dtExm>
+        <procRealizado>${esc(ex.cod)}</procRealizado>
+        <ordExame>${ei+1}</ordExame>
+        <indResult>${ex.res||'1'}</indResult>
+      </exame>`).join('');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<eSocial xmlns="http://www.esocial.gov.br/schema/evt/evtMonit/v_S_01_03_00"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <evtMonit Id="${evtId}">
+    <ideEvento>
+      <indRetif>1</indRetif>
+      <tpAmb>1</tpAmb>
+      <procEmi>1</procEmi>
+      <verProc>1.0</verProc>
+    </ideEvento>
+    <ideEmpregador>
+      <tpInsc>1</tpInsc>
+      <nrInsc>${cnpj8}</nrInsc>
+    </ideEmpregador>
+    <ideVinculo>
+      <cpfTrab>${cpf}</cpfTrab>
+      <nisTrab>${nis}</nisTrab>
+      <matricula>${esc(aso.mat||'001')}</matricula>
+      ${aso.nome?`<!-- Trabalhador: ${esc(aso.nome)} – ${esc(aso.cargo||'')} -->`:''}
+    </ideVinculo>
+    <aso>
+      <dtAso>${aso.dtAso}</dtAso>
+      <tpAso>${aso.tpAso}</tpAso>
+      <resAso>${aso.resAso}</resAso>
+      <medico>
+        <nmMed>${esc(emp.medNome||'Médico do Trabalho')}</nmMed>
+        <nrCRM>${nrCRM}</nrCRM>
+        <ufCRM>${ufCRM}</ufCRM>
+      </medico>
+      ${examesXML}
+    </aso>
+  </evtMonit>
+</eSocial>`;
+}
+
+function gerarXmlS2220(ai){
+  const xml=buildXmlS2220(ai);
+  const aso=asoList[ai];
+  downloadText(xml,`S-2220_ASO${ai+1}_CPF${(aso.cpf||'').replace(/\D/g,'')}.xml`,'application/xml');
+}
+
+// ══════════════════════════════════════════════
+// S-2210 – Comunicação de Acidente de Trabalho (CAT)
+// ══════════════════════════════════════════════
+function buildS2210(){
+  const container=document.getElementById('s2210Content');
+  if(!container) return;
+  container.innerHTML=`
+    <div class="grid-3" style="margin-bottom:16px">
+      <div style="background:#0a1f40;border:1px solid var(--border);border-radius:10px;padding:16px;grid-column:1/-1">
+        <h3 style="color:var(--accent);margin-bottom:12px">Dados do Trabalhador</h3>
+        <div class="grid-3">
+          <div class="form-group"><label>CPF *</label><input id="catCpf" placeholder="000.000.000-00"></div>
+          <div class="form-group"><label>NIS / PIS *</label><input id="catNis" placeholder="00000000000"></div>
+          <div class="form-group"><label>Matrícula</label><input id="catMat" placeholder="001"></div>
+          <div class="form-group" style="grid-column:1/3"><label>Nome Completo</label><input id="catNome" placeholder="Nome do trabalhador acidentado"></div>
+          <div class="form-group"><label>Cargo / Função</label><input id="catCargo" placeholder="Ex: Auxiliar de produção"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#0a1f40;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+      <h3 style="color:var(--accent);margin-bottom:12px">Dados do Acidente</h3>
+      <div class="grid-3">
+        <div class="form-group"><label>Data do Acidente *</label><input id="catDtAcid" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+        <div class="form-group"><label>Hora do Acidente</label><input id="catHrAcid" type="time" value="08:00"></div>
+        <div class="form-group"><label>Tipo de Acidente *</label>
+          <select id="catTpAcid">
+            <option value="1">1 – Típico</option>
+            <option value="2">2 – Trajeto (ida/volta)</option>
+            <option value="3">3 – Doença ocupacional</option>
+          </select></div>
+        <div class="form-group"><label>Tipo de CAT</label>
+          <select id="catTpCat">
+            <option value="1">1 – Inicial</option>
+            <option value="2">2 – Reabertura</option>
+            <option value="3">3 – Comunicação de óbito</option>
+          </select></div>
+        <div class="form-group"><label>Houve óbito?</label>
+          <select id="catObito"><option value="N">Não</option><option value="S">Sim</option></select></div>
+        <div class="form-group"><label>Local do Acidente</label>
+          <select id="catTpLocal">
+            <option value="1">1 – Estabelecimento do empregador</option>
+            <option value="2">2 – Estabelecimento de terceiros</option>
+            <option value="3">3 – Via pública</option>
+          </select></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Descrição do Local</label>
+          <input id="catDscLocal" placeholder="Ex: Galpão de expedição, pátio interno, Av. Principal 100"></div>
+      </div>
+    </div>
+
+    <div style="background:#0a1f40;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+      <h3 style="color:var(--accent);margin-bottom:12px">Lesão / Atestado Médico</h3>
+      <div class="grid-3">
+        <div class="form-group"><label>CID-10 *</label><input id="catCid" placeholder="Ex: S60"></div>
+        <div class="form-group"><label>Data do Atendimento *</label><input id="catDtAtend" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+        <div class="form-group"><label>Descrição da Lesão</label><input id="catLesao" placeholder="Ex: Corte no antebraço direito"></div>
+        <div class="form-group"><label>Parte Atingida Principal</label>
+          <select id="catParte">
+            <option value="710">710 – Braço</option>
+            <option value="720">720 – Antebraço</option>
+            <option value="740">740 – Mão</option>
+            <option value="745">745 – Dedo(s)</option>
+            <option value="600">600 – Perna</option>
+            <option value="630">630 – Pé</option>
+            <option value="190">190 – Cabeça</option>
+            <option value="200">200 – Pescoço</option>
+            <option value="400">400 – Tronco</option>
+            <option value="500">500 – Coluna vertebral</option>
+            <option value="800">800 – Regiões múltiplas</option>
+          </select></div>
+        <div class="form-group"><label>Agente Causador</label>
+          <select id="catAgente">
+            <option value="0621">0621 – Ferramentas manuais</option>
+            <option value="0628">0628 – Máquinas e equipamentos</option>
+            <option value="0640">0640 – Quedas de pessoas</option>
+            <option value="0660">0660 – Esforço excessivo / mov. repetitivos</option>
+            <option value="0680">0680 – Temperatura extrema</option>
+            <option value="0690">0690 – Agentes químicos</option>
+            <option value="0700">0700 – Agentes biológicos</option>
+            <option value="0630">0630 – Quedas de objetos</option>
+            <option value="0650">0650 – Choque elétrico</option>
+            <option value="9999">9999 – Outros</option>
+          </select></div>
+        <div class="form-group"><label>UF do CRM médico</label>
+          <select id="catUfCRM">
+            ${['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'].map(uf=>`<option value="${uf}" ${uf==='SP'?'selected':''}>${uf}</option>`).join('')}
+          </select></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-blue" onclick="gerarXmlS2210()">⬇ Baixar XML S-2210 – CAT</button>
+      <button class="btn btn-success" style="background:#c0392b" onclick="enviarS2210ViaBackend()">🚀 Enviar CAT ao eSocial</button>
+      <button class="btn btn-secondary" onclick="toggleXmlPreview('s2210Prev',buildXmlS2210)">👁 Pré-visualizar XML</button>
+    </div>
+    <div id="s2210Prev" style="display:none;margin-top:12px"></div>`;
+}
+
+function buildXmlS2210(){
+  const emp=getEmpresa();
+  const cnpjNum=emp.cnpj.replace(/\D/g,'');
+  const cnpj8=cnpjNum.substring(0,8);
+  const evtId=`ID${cnpjNum}${Date.now()}`;
+
+  const g=id=>{ const el=document.getElementById(id); return el?el.value.trim():''; };
+  const cpf=(g('catCpf')||'').replace(/\D/g,'').padStart(11,'0').substring(0,11);
+  const nis=(g('catNis')||'').replace(/\D/g,'').padStart(11,'0').substring(0,11);
+  const mat=g('catMat')||'001';
+  const dtAcid=g('catDtAcid')||new Date().toISOString().split('T')[0];
+  const hrAcid=(g('catHrAcid')||'08:00').replace(':','');
+  const tpAcid=g('catTpAcid')||'1';
+  const tpCat=g('catTpCat')||'1';
+  const obito=g('catObito')||'N';
+  const tpLocal=g('catTpLocal')||'1';
+  const dscLocal=g('catDscLocal')||emp.atividade||'Estabelecimento da empresa';
+  const cid=g('catCid')||'S60';
+  const dtAtend=g('catDtAtend')||dtAcid;
+  const lesao=g('catLesao')||'Lesão não especificada';
+  const parte=g('catParte')||'800';
+  const agente=g('catAgente')||'9999';
+  const ufCRM=g('catUfCRM')||'SP';
+
+  const end=emp.endereco||'';
+  const uf=end.match(/[-–]\s*([A-Z]{2})\s*[-–\s]/)?.[1]||'SP';
+  const cep=(end.match(/\d{5}-?\d{3}/)||['00000000'])[0].replace('-','');
+  const nrCRM=(emp.medCrm||'').replace(/\D/g,'')||'00000';
+  const logradouro=end.split(',')[0]||'Endereço não informado';
+  const nrLogr=(end.match(/,\s*(\d+[A-Za-z]?)/)||['','S/N'])[1]||'S/N';
+  const bairro=(end.match(/[-–]\s*([^-–,]+?)\s*[-–]/)||['','Centro'])[1]||'Centro';
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<eSocial xmlns="http://www.esocial.gov.br/schema/evt/evtCAT/v_S_01_03_00"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <evtCAT Id="${evtId}">
+    <ideEvento>
+      <indRetif>1</indRetif>
+      <tpAmb>1</tpAmb>
+      <procEmi>1</procEmi>
+      <verProc>1.0</verProc>
+    </ideEvento>
+    <ideEmpregador>
+      <tpInsc>1</tpInsc>
+      <nrInsc>${cnpj8}</nrInsc>
+    </ideEmpregador>
+    <ideVinculo>
+      <cpfTrab>${cpf}</cpfTrab>
+      <nisTrab>${nis}</nisTrab>
+      <matricula>${esc(mat)}</matricula>
+    </ideVinculo>
+    <cat>
+      <dtAcid>${dtAcid}</dtAcid>
+      <tpAcid>${tpAcid}</tpAcid>
+      <hrAcid>${hrAcid}</hrAcid>
+      <tpCat>${tpCat}</tpCat>
+      <indCatObito>${obito}</indCatObito>
+      <ideLocalAcid>
+        <tpLocal>${tpLocal}</tpLocal>
+        <dscLocal>${esc(dscLocal)}</dscLocal>
+        <tpLograd>R</tpLograd>
+        <dscLograd>${esc(logradouro)}</dscLograd>
+        <nrLograd>${esc(nrLogr)}</nrLograd>
+        <bairro>${esc(bairro)}</bairro>
+        <cep>${cep}</cep>
+        <codMunic>3550308</codMunic>
+        <uf>${uf}</uf>
+        <pais>105</pais>
+      </ideLocalAcid>
+      <atestado>
+        <codCID>${esc(cid.toUpperCase())}</codCID>
+        <dtAtend>${dtAtend}</dtAtend>
+        <dscLesao>${esc(lesao)}</dscLesao>
+        <partAtingPrinc>${parte}</partAtingPrinc>
+        <tpAcidEnum>${agente}</tpAcidEnum>
+      </atestado>
+      <acompMed>
+        <nmMed>${esc(emp.medNome||'Médico do Trabalho')}</nmMed>
+        <nrCRM>${nrCRM}</nrCRM>
+        <ufCRM>${ufCRM}</ufCRM>
+      </acompMed>
+    </cat>
+  </evtCAT>
+</eSocial>`;
+}
+
+function gerarXmlS2210(){
+  const xml=buildXmlS2210();
+  const g=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
+  const cpf=(g('catCpf')||'').replace(/\D/g,'')||'000';
+  downloadText(xml,`S-2210_CAT_CPF${cpf}.xml`,'application/xml');
+}
+
+// ══════════════════════════════════════════════
+// BACKEND API – envio automático eSocial
+// ══════════════════════════════════════════════
+// Funciona abrindo pelo servidor (localhost:3001) OU pelo arquivo direto
+const BACKEND_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+  ? 'http://localhost:3001'
+  : ''; // Em produção (Cloudflare Pages), usa URL relativa
+
+let backendStatus = null;
+
+async function checkBackend() {
+  const badge = document.getElementById('backendBadge');
+  console.log('🔵 checkBackend() iniciada - BACKEND_URL:', BACKEND_URL);
+  try {
+    const url = BACKEND_URL + '/api/status';
+    console.log('📡 Tentando conectar em:', url);
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    console.log('📦 Resposta recebida:', r.status);
+    backendStatus = await r.json();
+    if (badge) {
+      badge.textContent = '🟢 Backend conectado – ' + (backendStatus.cert?.titular || 'cert OK');
+      badge.style.color = '#7dcea0';
+    }
+    console.log('✅ Backend eSocial conectado:', backendStatus);
+  } catch (e) {
+    console.error('❌ Erro ao conectar backend:', e.message);
+    if (badge) {
+      badge.textContent = '🔴 Backend offline – XMLs serão baixados localmente';
+      badge.style.color = '#f07d7d';
+    }
+  }
+}
+
+// Envia eventos S-2240 via backend (com assinatura digital real)
+async function enviarS2240ViaBackend(gheId, gheIdx) {
+  if (!backendStatus) { alert('Backend offline. Baixe o XML manualmente.'); return; }
+  const emp    = getEmpresa();
+  const ghe    = ghes.find(g => g.id === gheId);
+  const riscos = getAllRiscosForGHE(ghe).filter(r => r.tipo !== 'Acidente' && r.tipo !== 'Psicossocial');
+  const comp   = document.getElementById('s2240Comp')?.value || new Date().toISOString().slice(0, 7);
+
+  const agNoc = riscos.map((r, ri) => {
+    const key = gheId + '_' + ri;
+    const cod = s2240AgOverride[key] || autoMapTab24(r);
+    const ag  = ESOCIAL_TAB24.find(a => a.cod === cod) || ESOCIAL_TAB24[ESOCIAL_TAB24.length - 1];
+    return {
+      cod, dsc: ag.dsc,
+      tpAval   : document.getElementById(`s2240tpAval_${gheId}_${ri}`)?.value || '2',
+      intConc  : document.getElementById(`s2240Int_${gheId}_${ri}`)?.value || '',
+      limTol   : document.getElementById(`s2240LT_${gheId}_${ri}`)?.value  || '',
+      unMed    : ag.unMed || '',
+      epcEficaz: document.getElementById(`s2240EPC_${gheId}_${ri}`)?.value || 'S',
+      epiEficaz: document.getElementById(`s2240EPI_${gheId}_${ri}`)?.value || 'S',
+      ativ     : cod === '09.01.001' ? '2' : '1',
+    };
+  });
+
+  const trabalhadores = (s2240Workers[gheId] || []).length
+    ? s2240Workers[gheId]
+    : [{ cpf: '00000000000', nis: '00000000000', matricula: '001' }];
+
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ Enviando...';
+
+  try {
+    const resp = await fetch(BACKEND_URL + '/api/enviar/s2240', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({ cnpj: emp.cnpj, ghe: { setor: ghe.setor, atividades: ghe.atividades }, agNoc, trabalhadores, perApur: comp }),
+    });
+    const data = await resp.json();
+    if (data.sucesso) {
+      alert(`✅ S-2240 enviado!\nnrRec: ${data.nrRec}\nStatus: ${data.descResposta}`);
+    } else {
+      alert(`⚠️ eSocial respondeu:\nCódigo: ${data.cdResposta}\n${data.descResposta}\n\nVerifique o ambiente (homologação/produção)`);
+    }
+  } catch (e) {
+    alert('❌ Erro ao enviar: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⬇ XML S-2240 – GHE ' + (gheIdx + 1);
+  }
+}
+
+// Envia ASOs S-2220 via backend
+async function enviarS2220ViaBackend(ai) {
+  if (!backendStatus) { alert('Backend offline. Baixe o XML manualmente.'); return; }
+  const emp = getEmpresa();
+  const aso = asoList[ai];
+
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Enviando...';
+
+  try {
+    const resp = await fetch(BACKEND_URL + '/api/enviar/s2220', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({
+        cnpj: emp.cnpj,
+        asos: [{
+          cpf     : aso.cpf, nis: aso.nis, matricula: aso.mat,
+          dtAso   : aso.dtAso, tpAso: aso.tpAso, resAso: aso.resAso,
+          medico  : { nmMed: emp.medNome||'Médico', nrCRM: (emp.medCrm||'').replace(/\D/g,''), ufCRM: 'SP' },
+          exames  : aso.exames.map(e => ({ dtExm: e.dt||aso.dtAso, procRealizado: e.cod, indResult: e.res })),
+        }],
+      }),
+    });
+    const data = await resp.json();
+    if (data.sucesso) {
+      alert(`✅ S-2220 enviado!\nnrRec: ${data.nrRec}`);
+    } else {
+      alert(`⚠️ Código: ${data.cdResposta}\n${data.descResposta}`);
+    }
+  } catch (e) {
+    alert('❌ Erro: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '⬇ XML S-2220 – ASO ' + (ai + 1);
+  }
+}
+
+// Envia CAT S-2210 via backend
+async function enviarS2210ViaBackend() {
+  if (!backendStatus) { alert('Backend offline. Baixe o XML manualmente.'); return; }
+  const emp = getEmpresa();
+  const g   = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Enviando...';
+
+  try {
+    const resp = await fetch(BACKEND_URL + '/api/enviar/s2210', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({
+        cnpj: emp.cnpj,
+        cat : {
+          cpfTrab      : (g('catCpf') || '').replace(/\D/g, ''),
+          nisTrab      : (g('catNis') || '').replace(/\D/g, ''),
+          matricula    : g('catMat') || '001',
+          dtAcid       : g('catDtAcid'),
+          hrAcid       : (g('catHrAcid') || '08:00').replace(':', ''),
+          tpAcid       : g('catTpAcid') || '1',
+          tpCat        : g('catTpCat')  || '1',
+          indCatObito  : g('catObito')  || 'N',
+          tpLocal      : g('catTpLocal')|| '1',
+          dscLocal     : g('catDscLocal') || emp.atividade,
+          dscLograd    : emp.endereco.split(',')[0] || '',
+          nrLograd     : 'S/N',
+          bairro       : 'Centro', cep: '00000000', uf: 'SP', codMunic: '3550308',
+          codCID       : g('catCid')    || 'S60',
+          dtAtend      : g('catDtAtend')|| g('catDtAcid'),
+          dscLesao     : g('catLesao')  || 'Lesão não especificada',
+          partAtingPrinc: g('catParte') || '800',
+          tpAcidEnum   : g('catAgente') || '9999',
+          nmMed        : emp.medNome || 'Médico do Trabalho',
+          nrCRM        : (emp.medCrm || '').replace(/\D/g, ''),
+          ufCRM        : g('catUfCRM') || 'SP',
+        },
+      }),
+    });
+    const data = await resp.json();
+    if (data.sucesso) {
+      alert(`✅ CAT enviada!\nnrRec: ${data.nrRec}`);
+    } else {
+      alert(`⚠️ Código: ${data.cdResposta}\n${data.descResposta}`);
+    }
+  } catch (e) {
+    alert('❌ Erro: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '🔴 Enviar CAT ao eSocial';
+  }
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  checkBackend();
+  // Set today's dates
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('dataVistoria').value=today;
+  document.getElementById('dataEmissao').value=today;
+  // Mask CNPJ
+  document.getElementById('cnpj').addEventListener('input',function(){
+    let v=this.value.replace(/\D/g,'').substring(0,14);
+    if(v.length>12) v=v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/,'$1.$2.$3/$4-$5');
+    else if(v.length>8) v=v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4}).*/,'$1.$2.$3/$4');
+    else if(v.length>5) v=v.replace(/^(\d{2})(\d{3})(\d{0,3}).*/,'$1.$2.$3');
+    else if(v.length>2) v=v.replace(/^(\d{2})(\d{0,3}).*/,'$1.$2');
+    this.value=v;
+  });
+});
+</script>
+</body>
+</html>
