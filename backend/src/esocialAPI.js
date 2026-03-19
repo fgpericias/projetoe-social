@@ -22,10 +22,12 @@ const ENDPOINTS = {
 };
 
 // ── Namespace do serviço ────────────────────────────────────────────────────
-// Novos namespaces para endpoints WCF (2025)
-const NS_ENVIO    = 'http://www.esocial.gov.br/servicos/envio/lote/eventos/EnviarLoteEventos';
-const NS_CONSULTA = 'http://www.esocial.gov.br/servicos/consulta/lote/eventos/ConsultarLoteEventos';
+// Namespaces corretos para endpoints WCF (2025) - Manual Dev v1.15
+const NS_ENVIO    = 'http://www.esocial.gov.br/servicos/empregador/lote/eventos/envio/v1_1_0';
+const NS_CONSULTA = 'http://www.esocial.gov.br/servicos/empregador/lote/eventos/consulta/v1_1_0';
 const NS_LOTE     = 'http://www.esocial.gov.br/schema/lote/eventos/envio/v1_1_1';
+const SOAP_ACTION_ENVIAR   = `${NS_ENVIO}/ServicoEnviarLoteEventos/EnviarLoteEventos`;
+const SOAP_ACTION_CONSULTAR = `${NS_CONSULTA}/ServicoConsultarLoteEventos/ConsultarLoteEventos`;
 
 class EsocialAPI {
   /**
@@ -139,7 +141,7 @@ ${eventosXml}
         httpsAgent: this.httpsAgent,
         headers: {
           'Content-Type': 'text/xml; charset=utf-8',
-          'SOAPAction'  : `"${NS_ENVIO}"`,
+          'SOAPAction'  : `"${SOAP_ACTION_ENVIAR}"`,
         },
         timeout   : 60000,
         maxBodyLength: Infinity,
