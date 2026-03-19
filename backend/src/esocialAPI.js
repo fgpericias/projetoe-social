@@ -77,7 +77,10 @@ class EsocialAPI {
   // ── Monta XML do lote ─────────────────────────────────────────────────────
   buildLoteXml({ tpInscEmpregador, nrInscEmpregador, tpInscTransmissor, nrInscTransmissor, eventos }) {
     const eventosXml = eventos
-      .map((e, i) => `      <evento Id="ev${i + 1}">\n        ${e.xml}\n      </evento>`)
+      .map((e, i) => {
+        const xmlClean = e.xml.replace(/^<\?xml[^?]*\?>\s*/i, '');
+        return `      <evento Id="ev${i + 1}">\n        ${xmlClean}\n      </evento>`;
+      })
       .join('\n');
 
     return `<?xml version="1.0" encoding="UTF-8"?>
