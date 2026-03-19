@@ -79,9 +79,8 @@ class EsocialAPI {
     const eventosXml = eventos
       .map((e, i) => {
         const xmlClean = e.xml.replace(/^<\?xml[^?]*\?>\s*/i, '');
-        // Id do <evento> deve ser igual ao Id do elemento raiz interno
-        const evtId = e.evtId || `ev${i + 1}`;
-        return `      <evento Id="${evtId}">\n        ${xmlClean}\n      </evento>`;
+        // Id do <evento> no lote deve ser ev1..ev50 (diferente do Id interno do evento)
+        return `      <evento Id="ev${i + 1}">\n        ${xmlClean}\n      </evento>`;
       })
       .join('\n');
 
