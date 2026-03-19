@@ -1,0 +1,13 @@
+{
+  "name": "projetoe-social",
+  "version": "1.0.0",
+  "description": "eSocial SST Events Elaborator and Submitter",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "cd backend && node server.js",
+    "install": "cd backend && npm install"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
