@@ -1,5 +1,13 @@
 'use strict';
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+
+// Diagnóstico de variáveis de ambiente (Railway)
+console.log('🔍 Variáveis detectadas:', {
+  PFX_BASE64: process.env.PFX_BASE64 ? `SIM (${process.env.PFX_BASE64.length} chars)` : 'NÃO',
+  PFX_PASSWORD: process.env.PFX_PASSWORD ? 'SIM' : 'NÃO',
+  TRANSMISSOR_CPF: process.env.TRANSMISSOR_CPF || 'NÃO',
+  ESOCIAL_AMBIENTE: process.env.ESOCIAL_AMBIENTE || 'NÃO',
+});
 
 const express  = require('express');
 const cors     = require('cors');
