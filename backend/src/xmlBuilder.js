@@ -217,9 +217,13 @@ function buildS2210(p) {
 
 // ── Gera ID de evento no padrão eSocial ────────────────────────────────────
 function generateEvtId(cnpj14, seq = 1) {
-  const ts  = Date.now().toString().slice(-12);
-  const s   = String(seq).padStart(5, '0');
-  return `ID${cnpj14.replace(/\D/g, '')}${ts}${s}`;
+  // Formato eSocial: ID + 14 dígitos CNPJ + 14 dígitos AAAAMMDDHHMMSS + 5 dígitos seq = 35 chars
+  const cnpj = cnpj14.replace(/\D/g, '').padEnd(14, '0').substring(0, 14);
+  const now  = new Date();
+  const pad  = (n, l) => String(n).padStart(l, '0');
+  const ts   = `${now.getFullYear()}${pad(now.getMonth()+1,2)}${pad(now.getDate(),2)}${pad(now.getHours(),2)}${pad(now.getMinutes(),2)}${pad(now.getSeconds(),2)}`;
+  const s    = String(seq).padStart(5, '0');
+  return `ID${cnpj}${ts}${s}`; // 2+14+14+5 = 35 chars
 }
 
 module.exports = { buildS2240, buildS2220, buildS2210, generateEvtId, esc };
