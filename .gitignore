@@ -1,0 +1,33 @@
+# ── Dependências ──────────────────────────────────────────
+node_modules/
+*/node_modules/
+
+# ── Variáveis de ambiente (NUNCA subir!) ──────────────────
+.env
+backend/.env
+*.env
+
+# ── Certificados digitais (NUNCA subir!) ──────────────────
+*.pfx
+*.p12
+*.cer
+*.key
+*.pem
+
+# ── Logs ──────────────────────────────────────────────────
+*.log
+backend/server.log
+backend/server_debug.log
+
+# ── Dados locais ──────────────────────────────────────────
+backend/data/
+
+# ── Sistema operacional ───────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor ────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp

@@ -24,7 +24,8 @@ const ENDPOINTS = {
 // ── Namespace do serviço ────────────────────────────────────────────────────
 // Namespaces corretos para endpoints WCF (2025) - Manual Dev v1.15
 const NS_ENVIO    = 'http://www.esocial.gov.br/servicos/empregador/lote/eventos/envio/v1_1_0';
-const NS_CONSULTA = 'http://www.esocial.gov.br/servicos/empregador/lote/eventos/consulta/v1_1_0';
+// Namespace correto da consulta conforme WsConsultarLoteEventos-v1_1_0.wsdl (targetNamespace)
+const NS_CONSULTA = 'http://www.esocial.gov.br/servicos/empregador/lote/eventos/envio/consulta/retornoProcessamento/v1_1_0';
 const NS_LOTE     = 'http://www.esocial.gov.br/schema/lote/eventos/envio/v1_1_1';
 const SOAP_ACTION_ENVIAR   = `${NS_ENVIO}/ServicoEnviarLoteEventos/EnviarLoteEventos`;
 const SOAP_ACTION_CONSULTAR = `${NS_CONSULTA}/ServicoConsultarLoteEventos/ConsultarLoteEventos`;
@@ -79,14 +80,17 @@ class EsocialAPI {
     const eventosXml = eventos
       .map((e, i) => {
         const xmlClean = e.xml.replace(/^<\?xml[^?]*\?>\s*/i, '');
-        // Id do <evento> no lote deve ser ev1..ev50 (diferente do Id interno do evento)
-        return `      <evento Id="ev${i + 1}">\n        ${xmlClean}\n      </evento>`;
+        // REGRA_VALIDA_ID_EVENTO: o Id do <evento> no lote DEVE ser idêntico
+        // ao Id do elemento interno (evtExpRisco, evtMonit, evtCAT...).
+        // Usar e.evtId (passado junto com e.xml) para garantir a igualdade.
+        const eventoId = e.evtId || `ev${i + 1}`;
+        return `      <evento Id="${eventoId}">\n        ${xmlClean}\n      </evento>`;
       })
       .join('\n');
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <eSocial xmlns="${NS_LOTE}">
-  <envioLoteEventos grupo="1">
+  <envioLoteEventos grupo="2">
     <ideEmpregador>
       <tpInsc>${tpInscEmpregador}</tpInsc>
       <nrInsc>${nrInscEmpregador}</nrInsc>
@@ -119,7 +123,9 @@ ${eventosXml}
   }
 
   // ── Envelope SOAP para consulta ───────────────────────────────────────────
-  buildConsultaSoap(nrRec) {
+  // O campo correto é protocoloEnvio (não nrRec) — XSD ConsultaLoteEventos-v1_0_0.xsd
+  buildConsultaSoap(protocoloEnvio) {
+    const NS_CONSULTA_XML = 'http://www.esocial.gov.br/schema/lote/eventos/envio/consulta/retornoProcessamento/v1_0_0';
     return `<soapenv:Envelope
   xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
   xmlns:con="${NS_CONSULTA}">
@@ -127,7 +133,11 @@ ${eventosXml}
   <soapenv:Body>
     <con:ConsultarLoteEventos>
       <con:consulta>
-        <nrRec>${nrRec}</nrRec>
+        <eSocial xmlns="${NS_CONSULTA_XML}">
+          <consultaLoteEventos>
+            <protocoloEnvio>${protocoloEnvio}</protocoloEnvio>
+          </consultaLoteEventos>
+        </eSocial>
       </con:consulta>
     </con:ConsultarLoteEventos>
   </soapenv:Body>
@@ -138,6 +148,9 @@ ${eventosXml}
   async enviarLote(params) {
     const loteXml      = this.buildLoteXml(params);
     const soapEnvelope = this.buildEnvioSoap(loteXml);
+
+    // LOG temporário para debug do SOAP
+    console.log('\n📤 SOAP ENVELOPE (primeiros 2000 chars):\n', soapEnvelope.substring(0, 2000));
 
     let rawResponse;
     try {
@@ -166,12 +179,30 @@ ${eventosXml}
   // ── Consulta resultado do lote ────────────────────────────────────────────
   async consultarLote(nrRec) {
     const soapBody = this.buildConsultaSoap(nrRec);
-    const res = await axios.post(this.endpoints.consultar, soapBody, {
-      httpsAgent: this.httpsAgent,
-      headers  : { 'Content-Type': 'text/xml; charset=utf-8' },
-      timeout  : 30000,
-    });
-    return this._parseConsultaResponse(res.data);
+
+    let rawResponse;
+    try {
+      const res = await axios.post(this.endpoints.consultar, soapBody, {
+        httpsAgent: this.httpsAgent,
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'SOAPAction'  : `"${SOAP_ACTION_CONSULTAR}"`,
+        },
+        timeout: 30000,
+      });
+      rawResponse = res.data;
+    } catch (err) {
+      if (err.response) {
+        rawResponse = err.response.data;
+      } else {
+        throw new Error(`Falha na consulta ao eSocial: ${err.message}`);
+      }
+    }
+
+    console.log('\n📥 CONSULTA – Raw (primeiros 1500 chars):');
+    console.log(String(rawResponse).substring(0, 1500));
+
+    return this._parseConsultaResponse(rawResponse);
   }
 
   // ── Parsers de resposta ───────────────────────────────────────────────────
@@ -198,42 +229,75 @@ ${eventosXml}
       return null;
     };
 
-    const cdResp = get('cdResposta');
-    const nrRec = get('nrRec');
+    const cdResp   = get('cdResposta');
+    const nrRec    = get('nrRec');
     const descResp = get('descResposta');
+    const protocolo = get('protocoloEnvio');
 
-    console.log(`\n✅ Parsed: cdResposta=${cdResp}, nrRec=${nrRec}, descResposta=${descResp}\n`);
+    console.log(`\n✅ Parsed: cdResposta=${cdResp}, protocoloEnvio=${protocolo}, nrRec=${nrRec}, desc=${descResp}\n`);
 
     return {
-      sucesso    : cdResp === '201',
+      sucesso         : cdResp === '201',
       nrRec,
-      cdResposta : cdResp,
-      descResposta: descResp,
+      protocoloEnvio  : protocolo,
+      cdResposta      : cdResp,
+      descResposta    : descResp,
       loteXml,
-      rawResponse: xml,
+      rawResponse     : xml,
     };
   }
 
   _parseConsultaResponse(xml) {
     const get = (tag) => {
-      // Match tags com ou sem namespace
-      const m = xml.match(new RegExp(`<[\\w]*:?${tag}[^>]*>([^<]*)<\\/[\\w]*:?${tag}>`));
+      // Match tags com ou sem namespace prefix
+      let m = xml.match(new RegExp(`<[\\w]*:?${tag}[^>]*>([^<]*)<\\/[\\w]*:?${tag}>`));
       return m ? m[1].trim() : null;
     };
-    const erros = [];
-    const erroReg = /<erro>([\s\S]*?)<\/erro>/gi;
-    let m;
-    while ((m = erroReg.exec(xml)) !== null) {
-      const e = m[1];
-      const cod  = (e.match(/<codigo>([^<]*)<\/codigo>/) || [])[1] || '';
-      const desc = (e.match(/<descricao>([^<]*)<\/descricao>/) || [])[1] || '';
-      erros.push({ cod, desc });
+
+    // Situação do lote: cdResposta dentro de <status>
+    const statusBlock = xml.match(/<status>([\s\S]*?)<\/status>/i);
+    const cdRespLote  = statusBlock
+      ? (statusBlock[1].match(/<cdResposta>([^<]*)<\/cdResposta>/) || [])[1] || null
+      : null;
+    const descLote    = statusBlock
+      ? (statusBlock[1].match(/<descResposta>([^<]*)<\/descResposta>/) || [])[1] || null
+      : null;
+
+    // Retorno de cada evento (dentro de <processamento>)
+    const eventosRetorno = [];
+    const reEvt = /<processamento>([\s\S]*?)<\/processamento>/gi;
+    let mEvt;
+    while ((mEvt = reEvt.exec(xml)) !== null) {
+      const blk  = mEvt[1];
+      const cd   = (blk.match(/<cdResposta>([^<]*)<\/cdResposta>/) || [])[1] || '';
+      const desc = (blk.match(/<descResposta>([^<]*)<\/descResposta>/) || [])[1] || '';
+      // Ocorrências deste evento
+      const ocorrs = [];
+      const reOc = /<ocorrencia>([\s\S]*?)<\/ocorrencia>/gi;
+      let mOc;
+      while ((mOc = reOc.exec(blk)) !== null) {
+        const o = mOc[1];
+        ocorrs.push({
+          tipo      : (o.match(/<tipo>([^<]*)<\/tipo>/) || [])[1] || '',
+          codigo    : (o.match(/<codigo>([^<]*)<\/codigo>/) || [])[1] || '',
+          descricao : (o.match(/<descricao>([^<]*)<\/descricao>/) || [])[1] || '',
+          localizacao: (o.match(/<localizacao>([^<]*)<\/localizacao>/) || [])[1] || '',
+        });
+      }
+      eventosRetorno.push({ cdResposta: cd, descResposta: desc, ocorrencias: ocorrs });
     }
+
+    // Retrocompatibilidade: erros = todas as ocorrências de todos os eventos
+    const erros = eventosRetorno.flatMap(e =>
+      e.ocorrencias.map(o => ({ cod: o.codigo, desc: o.descricao }))
+    );
+
     return {
-      situacao    : get('cdSitLote'),
-      descSituacao: get('dscSitLote'),
+      situacao     : cdRespLote,
+      descSituacao : descLote,
+      eventosRetorno,
       erros,
-      rawResponse : xml,
+      rawResponse  : xml,
     };
   }
 }
